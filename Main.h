@@ -25,20 +25,17 @@
 
 #include "Sample.h"
 
-
 using namespace Urho3D;
 
 const static int NUM_BOIDS = 100;
 
 namespace Urho3D
 {
-
 	class Node;
 	class Scene;
 	class RigidBody;
 	class CollisionShape;
 	class ResourceCache;
-
 }
 
 class Boid

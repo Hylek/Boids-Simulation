@@ -104,7 +104,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	using namespace Update;
 
 	float timeStep = eventData[P_TIMESTEP].GetFloat();
-	const float MOVE_SPEED = 20.0f;
+	const float MOVE_SPEED = 40.0f;
 	const float MOUSE_SENSITIVITY = 0.1f;
 
 	if (GetSubsystem<UI>()->GetFocusElement())
@@ -196,11 +196,11 @@ void Boid::ComputeForce(Boid* boid)
 			neighbourCount++;
 		}
 
-		/*if (d < Range_FRepel)
-		{
-		force += (pRigidBody->GetPosition().Normalized() - boid[i].pRigidBody->GetPosition().Normalized()) * FRepel_Factor;
-		neighbourCount++;
-		} */
+		//if (d < Range_FRepel)
+		//{
+		//	force += (rb->GetPosition().Normalized() - boid[i].rb->GetPosition().Normalized()) * FRepel_Factor;
+		//	neighbourCount++;
+		//}
 	}
 
 	// Attraction Force
