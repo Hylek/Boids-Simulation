@@ -68,7 +68,7 @@ void Main::CreateScene()
 	// Creating the floor
 	Node* floorNode = scene_->CreateChild("Floor");
 	floorNode->SetPosition(Vector3(0.0f, -0.5f, 0.0f));
-	floorNode->SetScale(Vector3(200.0f, 1.0f, 200.0f));
+	floorNode->SetScale(Vector3(2000.0f, 1.0f, 2000.0f));
 	StaticModel* object = floorNode->CreateComponent<StaticModel>();
 	object->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	object->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
@@ -169,13 +169,163 @@ void Boid::Init(ResourceCache* pRes, Scene* scene)
 	rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
+void Boid::Attract(Boid* boid)
+{
+	Vector3 centerOfMass;
+	int neighbourCount = 0;
+	attractForce = Vector3(0, 0, 0);
+
+	for (int i = 0; i < NUM_BOIDS; i++)
+	{
+		if (this == &boid[i]) continue;
+
+		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+		float distance = sep.Length();
+
+		if (distance < Range_FAttract)
+		{
+			centerOfMass += boid[i].rb->GetPosition();
+			neighbourCount++;
+		}
+	}
+	if (neighbourCount > 0)
+	{
+		centerOfMass /= neighbourCount;
+		Vector3 direction = (centerOfMass - rb->GetPosition()).Normalized();
+		Vector3 vDesired = direction * FAttract_Vmax;
+		attractForce += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
+	}
+}
+
+void Boid::Align(Boid* boid)
+{
+	Vector3 direction;
+	int neighbourCount = 0;
+	alignForce = Vector3(0, 0, 0);
+
+	for (int i = 0; i < NUM_BOIDS; i++)
+	{
+		if (this == &boid[i]) continue;
+
+		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+		float distance = sep.Length();
+
+		if (distance < Range_FAlign)
+		{
+			direction += boid[i].rb->GetLinearVelocity();
+			neighbourCount++;
+		}
+	}
+
+	if (neighbourCount > 0)
+	{
+		direction /= neighbourCount;
+		Vector3 vDesired = direction;
+		alignForce += (vDesired - rb->GetLinearVelocity()) * FAlign_Factor;
+	}
+}
+
+void Boid::Repel(Boid* boid)
+{
+	Vector3 neighbourPos;
+	int neighbourCount = 0;
+	repelForce = Vector3(0, 0, 0);
+
+	for (int i = 0; i < NUM_BOIDS; i++)
+	{
+		if (this == &boid[i]) continue;
+
+		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+		float distance = sep.Length();
+
+		if (distance < Range_FRepel)
+		{
+			Vector3 delta = rb->GetPosition() - boid[i].rb->GetPosition();
+			repelForce += (delta / delta * delta);
+			neighbourCount++;
+		}
+	}
+
+	if (neighbourCount > 0)
+	{
+		repelForce *= FRepel_Factor;
+		//repelForce += ((rb->GetPosition() - neighbourPos) / (rb->GetPosition() - neighbourPos).Normalized() * (rb->GetPosition() - neighbourPos).Normalized()) * FRepel_Factor;
+	}
+}
+
 void Boid::ComputeForce(Boid* boid)
 {
-	Vector3 CoMAttract;
-	Vector3 CoMAlign;
-	Vector3 CoMRepulse;
-	int neighbourCount = 0;
-	force = Vector3(0, 0, 0);
+	Attract(boid);
+	Align(boid);
+	//Repel(boid);
+
+	finalForce = Vector3(0, 0, 0);
+	finalForce = attractForce + alignForce + repelForce;
+
+
+
+	/* //Vector3 CoMAttract;
+	//Vector3 CoMAlign;
+	//Vector3 CoMRepulse;
+	//int neighbourCount = 0;
+	//force = Vector3(0, 0, 0);
+	//Vector3 attractForce = Vector3(0, 0, 0);
+	//Vector3 alignForce = Vector3(0, 0, 0);
+	//Vector3 repelForce = Vector3(0, 0, 0);
+	//Vector3 repelDelta = Vector3(0, 0, 0);
+
+
+	//for (int i = 0; i < NUM_BOIDS; i++)
+	//{
+	//	if (this == &boid[i]) continue;
+
+	//	Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+	//	float d = sep.Length();
+
+	//	if (d < Range_FAttract)
+	//	{
+	//		CoMAttract += boid[i].rb->GetPosition();
+	//		neighbourCount++;
+	//	}
+
+	//	if (d < Range_FAlign)
+	//	{
+	//		CoMAlign += boid[i].rb->GetLinearVelocity();
+	//		neighbourCount++;
+	//	}
+
+	//	// Separation Force
+	//	if (d < Range_FRepel)
+	//	{
+	//		repelDelta = (rb->GetPosition() - boid[i].rb->GetPosition());
+	//		repelDelta / repelDelta.LengthSquared() * repelDelta.LengthSquared();
+	//		neighbourCount++;
+	//	}
+	//}
+
+
+	//if (neighbourCount > 0)
+	//{
+	//	// Attraction Force
+	//	CoMAttract /= neighbourCount;
+	//	Vector3 direction = (CoMAttract - rb->GetPosition()).Normalized();
+	//	Vector3 vDesired = direction * FAttract_Vmax;
+	//	attractForce += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
+
+	//	// Align Force
+	//	CoMAlign /= neighbourCount;
+	//	alignForce += (CoMAlign - rb->GetLinearVelocity()) * FAlign_Factor;
+
+	//	// Repel Force
+	//	repelForce += repelDelta * FRepel_Factor;
+	//} */
+
+	/* Vector3 repelForce;
+	Vector3 attractForce;
+	Vector3 alignForce;
+	Vector3 finalForce;
+	Vector3 posMean;
+	Vector3 velMean;
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -183,52 +333,31 @@ void Boid::ComputeForce(Boid* boid)
 
 		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 		float d = sep.Length();
+		posMean += boid[i].rb->GetPosition();
+		velMean += boid[i].rb->GetLinearVelocity();
 
-		if (d < Range_FAttract)
+		if (d < Range_FRepel)
 		{
-			CoMAttract += boid[i].rb->GetPosition();
-			neighbourCount++;
+			Vector3 delta = rb->GetPosition() - boid[i].rb->GetPosition();
+			repelForce += (delta / delta * delta);
 		}
-
-		if (d < Range_FAlign)
-		{
-			CoMAlign += boid[i].rb->GetLinearVelocity();
-			neighbourCount++;
-		}
-
-		//if (d < Range_FRepel)
-		//{
-		//	force += (rb->GetPosition().Normalized() - boid[i].rb->GetPosition().Normalized()) * FRepel_Factor;
-		//	neighbourCount++;
-		//}
 	}
 
-	// Attraction Force
-	if (neighbourCount > 0)
-	{
-		CoMAttract /= neighbourCount;
-		Vector3 direction = (CoMAttract - rb->GetPosition()).Normalized();
-		Vector3 vDesired = direction * FAttract_Vmax;
-		force += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
-	}
+	repelForce *= FRepel_Factor;
 
-	// Alignment Force
-	if (neighbourCount > 0)
-	{
-		CoMAlign /= neighbourCount;
-		Vector3 vDesired = CoMAlign;
-		force += (vDesired - rb->GetLinearVelocity()) * FAlign_Factor;
-	}
+	posMean /= NUM_BOIDS;
+	attractForce = FAttract_Factor * ((((posMean - rb->GetPosition()) / ((posMean - rb->GetPosition()).Normalized()) * FAttract_Vmax) - rb->GetLinearVelocity()));
 
-	if (neighbourCount > 0)
-	{
+	velMean /= NUM_BOIDS;
+	alignForce = FAlign_Factor * (velMean - rb->GetLinearVelocity());
 
-	}
+
+	force = repelForce + attractForce + alignForce; */
 }
 
 void Boid::Update(float frameTime)
 {
-	rb->ApplyForce(force);
+	rb->ApplyForce(finalForce);
 	Vector3 velocity = rb->GetLinearVelocity();
 	float direction = velocity.Length();
 
@@ -259,6 +388,26 @@ void Boid::Update(float frameTime)
 		p.y_ = 50.0f;
 		rb->SetPosition(p);
 	}
+	/*if (p.x_ < 10.0f)
+	{
+		p.x_ = 10.0f;
+		rb->SetPosition(p);
+	}
+	else if (p.x_ > 100.0f)
+	{
+		p.x_ = 100.0f;
+		rb->SetPosition(p);
+	}
+	if (p.z_ < 10.0f)
+	{
+		p.z_ = 10.0f;
+		rb->SetPosition(p);
+	}
+	else if (p.z_ > 100.0f)
+	{
+		p.z_ = 100.0f;
+		rb->SetPosition(p);
+	} */
 }
 
 BoidSet::BoidSet() : Object(context_)
