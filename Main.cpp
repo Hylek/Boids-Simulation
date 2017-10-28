@@ -241,14 +241,15 @@ void Boid::Repel(Boid* boid)
 		if (distance < Range_FRepel)
 		{
 			Vector3 delta = rb->GetPosition() - boid[i].rb->GetPosition();
-			repelForce += (delta / delta * delta);
+			//repelForce += (delta / delta * delta);
+			repelForce = repelForce - (rb->GetPosition() - boid[i].rb->GetPosition()) * FRepel_Factor;
 			neighbourCount++;
 		}
 	}
 
 	if (neighbourCount > 0)
 	{
-		repelForce *= FRepel_Factor;
+		//repelForce *= FRepel_Factor;
 		//repelForce += ((rb->GetPosition() - neighbourPos) / (rb->GetPosition() - neighbourPos).Normalized() * (rb->GetPosition() - neighbourPos).Normalized()) * FRepel_Factor;
 	}
 }
@@ -257,7 +258,7 @@ void Boid::ComputeForce(Boid* boid)
 {
 	Attract(boid);
 	Align(boid);
-	//Repel(boid);
+	Repel(boid);
 
 	finalForce = Vector3(0, 0, 0);
 	finalForce = attractForce + alignForce + repelForce;
