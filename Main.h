@@ -55,15 +55,13 @@ public:
 
 	void Init(ResourceCache* cache, Scene* scene);
 	void ComputeForce(Boid* boid);
-	void Attract(Boid* boid);
-	void Align(Boid* boid);
-	void Repel(Boid* boid);
+	Vector3 Attract(Boid* boid);
+	Vector3 Align(Boid* boid);
+	Vector3 Repel(Boid* boid);
+	Vector3 Direction(Boid* boid);
 	void Update(float lastFrame);
 
-	Vector3 attractForce;
-	Vector3 alignForce;
-	Vector3 repelForce;
-	Vector3 finalForce;
+	Vector3 force;
 	Node* node;
 	RigidBody* rb;
 	CollisionShape* collider;

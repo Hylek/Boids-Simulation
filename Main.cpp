@@ -96,7 +96,6 @@ void Main::CreateScene()
 void Main::SubscribeToEvents()
 {
 	SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
-	
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -169,11 +168,11 @@ void Boid::Init(ResourceCache* pRes, Scene* scene)
 	rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
-void Boid::Attract(Boid* boid)
+Vector3 Boid::Attract(Boid* boid)
 {
 	Vector3 centerOfMass;
 	int neighbourCount = 0;
-	attractForce = Vector3(0, 0, 0);
+	Vector3 attractForce = Vector3(0, 0, 0);
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -195,13 +194,14 @@ void Boid::Attract(Boid* boid)
 		Vector3 vDesired = direction * FAttract_Vmax;
 		attractForce += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
 	}
+	return attractForce;
 }
 
-void Boid::Align(Boid* boid)
+Vector3 Boid::Align(Boid* boid)
 {
 	Vector3 direction;
 	int neighbourCount = 0;
-	alignForce = Vector3(0, 0, 0);
+	Vector3 alignForce = Vector3(0, 0, 0);
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -223,13 +223,14 @@ void Boid::Align(Boid* boid)
 		Vector3 vDesired = direction;
 		alignForce += (vDesired - rb->GetLinearVelocity()) * FAlign_Factor;
 	}
+	return alignForce;
 }
 
-void Boid::Repel(Boid* boid)
+Vector3 Boid::Repel(Boid* boid)
 {
 	Vector3 neighbourPos;
 	int neighbourCount = 0;
-	repelForce = Vector3(0, 0, 0);
+	Vector3 repelForce = Vector3(0, 0, 0);
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -253,18 +254,20 @@ void Boid::Repel(Boid* boid)
 		repelForce *= FRepel_Factor;
 		//repelForce += ((rb->GetPosition() - neighbourPos) / (rb->GetPosition() - neighbourPos).Normalized() * (rb->GetPosition() - neighbourPos).Normalized()) * FRepel_Factor;
 	}
+	return repelForce;
+}
+
+Vector3 Boid::Direction(Boid* boid)
+{
+	Vector3 desiredDirection = Vector3(0, 0, 0);
+
+	return desiredDirection;
 }
 
 void Boid::ComputeForce(Boid* boid)
 {
-	Attract(boid);
-	Align(boid);
-	Repel(boid);
-
-	finalForce = Vector3(0, 0, 0);
-	finalForce = attractForce + alignForce + repelForce;
-
-
+	force = Vector3(0, 0, 0);
+	force = Repel(boid) + Align(boid) + Attract(boid);
 
 	/* //Vector3 CoMAttract;
 	//Vector3 CoMAlign;
@@ -321,7 +324,6 @@ void Boid::ComputeForce(Boid* boid)
 	//	// Repel Force
 	//	repelForce += repelDelta * FRepel_Factor;
 	//} */
-
 	/* Vector3 repelForce;
 	Vector3 attractForce;
 	Vector3 alignForce;
@@ -359,7 +361,7 @@ void Boid::ComputeForce(Boid* boid)
 
 void Boid::Update(float frameTime)
 {
-	rb->ApplyForce(finalForce);
+	rb->ApplyForce(force);
 	Vector3 velocity = rb->GetLinearVelocity();
 	float direction = velocity.Length();
 
