@@ -9,7 +9,7 @@ float Boid::Range_FAlign = 5.0f;
 float Boid::FAttract_Vmax = 5.0f;
 
 float Boid::FAttract_Factor = 4.0f;
-float Boid::FRepel_Factor = 2.0f;
+float Boid::FRepel_Factor = 2.5f;
 float Boid::FAlign_Factor = 2.0f;
 
 Main::Main(Context* context) : Sample(context), firstPerson(false)
@@ -165,7 +165,7 @@ void Boid::Init(ResourceCache* pRes, Scene* scene)
 	model->SetModel(pRes->GetResource<Model>("Models/Cone.mdl"));
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
-	node->SetPosition(Vector3(Random(180.0f) - 90.0f, 30.0f, Random(180.0f) - 90.0f));
+	node->SetPosition(Vector3(Random(180.0f) - 160.0f, 30.0f, Random(180.0f) - 160.0f));
 	rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
@@ -240,16 +240,17 @@ void Boid::Repel(Boid* boid)
 
 		if (distance < Range_FRepel)
 		{
-			Vector3 delta = rb->GetPosition() - boid[i].rb->GetPosition();
+			Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
 			//repelForce += (delta / delta * delta);
-			repelForce = repelForce - (rb->GetPosition() - boid[i].rb->GetPosition()) * FRepel_Factor;
+			//repelForce = repelForce - (rb->GetPosition() - boid[i].rb->GetPosition()) * FRepel_Factor;
+			repelForce += (delta / delta.Length());
 			neighbourCount++;
 		}
 	}
 
 	if (neighbourCount > 0)
 	{
-		//repelForce *= FRepel_Factor;
+		repelForce *= FRepel_Factor;
 		//repelForce += ((rb->GetPosition() - neighbourPos) / (rb->GetPosition() - neighbourPos).Normalized() * (rb->GetPosition() - neighbourPos).Normalized()) * FRepel_Factor;
 	}
 }
@@ -389,7 +390,7 @@ void Boid::Update(float frameTime)
 		p.y_ = 50.0f;
 		rb->SetPosition(p);
 	}
-	/*if (p.x_ < 10.0f)
+	/* if (p.x_ < 10.0f)
 	{
 		p.x_ = 10.0f;
 		rb->SetPosition(p);
