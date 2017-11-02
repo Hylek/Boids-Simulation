@@ -266,7 +266,7 @@ Vector3 Boid::Direction(Boid* boid)
 
 void Boid::ComputeForce(Boid* boid)
 {
-	force = Vector3(0, 0, 0);
+	//force = Vector3(0, 0, 0);
 	force = Repel(boid) + Align(boid) + Attract(boid);
 
 	/* //Vector3 CoMAttract;
