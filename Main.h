@@ -22,6 +22,12 @@
 #include <Urho3D/UI/Text.h>
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/DebugNew.h>
+#include <Urho3D/Math/Color.h>
+#include <Urho3D/UI/LineEdit.h>
+#include <Urho3D/UI/Button.h>
+#include <Urho3D/UI/UIEvents.h>
+#include <Urho3D/UI/Window.h>
+#include <Urho3D/UI/CheckBox.h>
 
 #include "Sample.h"
 
@@ -36,6 +42,7 @@ namespace Urho3D
 	class RigidBody;
 	class CollisionShape;
 	class ResourceCache;
+	class Window;
 }
 
 class Boid
@@ -103,8 +110,16 @@ protected:
 private:
 
 	bool firstPerson;
-	
+	bool isMenuVisible = false;
+	bool ignoreInputs = false; 
+	SharedPtr<Window> window;
+	UI* ui;
 
 	void CreateScene();
+	void CreateMainMenu();
+	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow);
+	Button* CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow);
+	void HandleQuit(StringHash eventType, VariantMap& eventData);
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
+	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 };

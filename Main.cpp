@@ -29,6 +29,7 @@ void Main::Start()
 
 	CreateScene();
 	SubscribeToEvents();
+	CreateMainMenu();
 }
 
 void Main::CreateScene()
@@ -50,20 +51,21 @@ void Main::CreateScene()
 	Node* zoneNode = scene_->CreateChild("Zone");
 	Zone* zone = zoneNode->CreateComponent<Zone>();
 	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
-	zone->SetFogColor(Color(0.5f, 0.5f, 0.7f));
-	zone->SetFogStart(100.0f);
-	zone->SetFogEnd(300.0f);
+	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
+	zone->SetFogStart(50.0f);
+	zone->SetFogEnd(2000.0f);
 	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
 
 	// Creating a directional light
 	Node* lightNode = scene_->CreateChild("DirectionalLight");
 	lightNode->SetDirection(Vector3(0.3f, -0.5f, 0.425f));
 	Light* light = lightNode->CreateComponent<Light>();
-	light->SetLightType(LIGHT_DIRECTIONAL); // Runtime error here!
+	light->SetLightType(LIGHT_DIRECTIONAL);
 	light->SetCastShadows(true);
 	light->SetShadowBias(BiasParameters(0.00025f, 0.5f));
 	light->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 	light->SetSpecularIntensity(0.5f);
+	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
 	// Creating the floor
 	Node* floorNode = scene_->CreateChild("Floor");
@@ -90,12 +92,22 @@ void Main::CreateScene()
 	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
 	boxCol->SetBox(Vector3::ONE);
 
+	// Creating the ocean base
+	Node* oceanNode = scene_->CreateChild("OceanTop");
+	oceanNode->SetPosition(Vector3(0.0f, 250.0f, 0.0f));
+	oceanNode->SetScale(Vector3(2000.0f, 0.0f, 2000.0f));
+	StaticModel* oceanObject = oceanNode->CreateComponent<StaticModel>();
+	oceanObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+	oceanObject->SetMaterial(cache->GetResource<Material>("Materials/Water.xml"));
+	oceanObject->SetCastShadows(true);
+	
 	boidSet.Init(cache, scene_);
 }
 
 void Main::SubscribeToEvents()
 {
 	SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
+	SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(Main, HandlePostUpdate));
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -113,32 +125,128 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 	boidSet.Update(timeStep);
 
-	// Adjust node yaw and pitch via mouse movement and limit pitch between -90 to 90
 	Input* input = GetSubsystem<Input>();
-	IntVector2 mouseMove = input->GetMouseMove();
-	yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
-	pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
-	pitch_ = Clamp(pitch_, -90.0f, 90.0f);
+	if (!ignoreInputs)
+	{
+		// Adjust node yaw and pitch via mouse movement and limit pitch between -90 to 90
+		IntVector2 mouseMove = input->GetMouseMove();
+		yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
+		pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
+		pitch_ = Clamp(pitch_, -90.0f, 90.0f);
 
-	// Make new camera orientation for the camera scene node, roll is 0
-	cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
+		// Make new camera orientation for the camera scene node, roll is 0
+		cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
 
-	if (input->GetKeyDown(KEY_W))
-	{
-		cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
+		if (input->GetKeyDown(KEY_W))
+		{
+			cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
+		}
+		if (input->GetKeyDown(KEY_S))
+		{
+			cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
+		}
+		if (input->GetKeyDown(KEY_A))
+		{
+			cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
+		}
+		if (input->GetKeyDown(KEY_D))
+		{
+			cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
+		}
+		if (!isMenuVisible)
+		{
+			if (input->GetKeyPress(KEY_M))
+			{
+				isMenuVisible = true;
+			}
+		}
 	}
-	if (input->GetKeyDown(KEY_S))
+
+	if (isMenuVisible)
 	{
-		cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
+		if (input->GetKeyPress(KEY_M))
+		{
+			isMenuVisible = true;
+		}
 	}
-	if (input->GetKeyDown(KEY_A))
+
+	if (!ui->GetCursor()->IsVisible())
 	{
-		cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
+		ignoreInputs = false;
 	}
-	if (input->GetKeyDown(KEY_D))
+	else
 	{
-		cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
+		ignoreInputs = true;
 	}
+}
+
+void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
+{
+	Input* input = GetSubsystem<Input>();
+	ui->GetCursor()->SetVisible(isMenuVisible);
+	window->SetVisible(isMenuVisible);
+}
+
+void Main::CreateMainMenu()
+{
+	InitMouseMode(MM_RELATIVE);
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	ui = GetSubsystem<UI>();
+	UIElement* root = ui->GetRoot();
+	XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
+	root->SetDefaultStyle(style);
+
+	SharedPtr<Cursor> cursor(new Cursor(context_));
+	cursor->SetStyleAuto(style);
+	ui->SetCursor(cursor);
+
+	window = new Window(context_);
+	root->AddChild(window);
+
+	window->SetMinWidth(384);
+	window->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
+	window->SetAlignment(HA_CENTER, VA_CENTER);
+	window->SetName("Window");
+	window->SetStyleAuto();
+
+	Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
+
+	CreateButton(font, "Button 1", 24, window);
+	CreateButton(font, "Button 2", 24, window);
+	CreateButton(font, "Quit", 24, window);
+
+	CreateLineEdit("LineText", 24, window);
+
+	SubscribeToEvent(NULL, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit)); // FIX THE NULL ENTRY
+}
+
+Button* Main::CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow)
+{
+	Button* button = whichWindow->CreateChild<Button>();
+	button->SetMinHeight(pHeight);
+	button->SetStyleAuto();
+	Text* buttonText = button->CreateChild<Text>();
+	buttonText->SetFont(font, 12);
+	buttonText->SetAlignment(HA_CENTER, VA_CENTER);
+	buttonText->SetText(text);
+	whichWindow->AddChild(button);
+	return button;
+}
+
+LineEdit* Main::CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow)
+{
+	LineEdit* lineEdit = whichWindow->CreateChild<LineEdit>();
+	lineEdit->SetMinHeight(pHeight);
+	lineEdit->SetAlignment(HA_CENTER, VA_CENTER);
+	lineEdit->SetText(text);
+	whichWindow->AddChild(lineEdit);
+	lineEdit->SetStyleAuto();
+	return lineEdit;
+}
+
+void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
+{
+	engine_->Exit();
 }
 
 Boid::Boid()
@@ -165,7 +273,7 @@ void Boid::Init(ResourceCache* pRes, Scene* scene)
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
 	node->SetPosition(Vector3(Random(180.0f) - 160.0f, 30.0f, Random(180.0f) - 160.0f));
-	rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
+	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
 Vector3 Boid::Attract(Boid* boid)
