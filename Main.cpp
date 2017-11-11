@@ -5,12 +5,17 @@ URHO3D_DEFINE_APPLICATION_MAIN(Main)
 float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
 float Boid::Range_FAlign = 5.0f;
+float Boid::Range_FMissileRepel = 5.0f;
 
 float Boid::FAttract_Vmax = 5.0f;
 
 float Boid::FAttract_Factor = 4.0f;
 float Boid::FRepel_Factor = 2.5f;
 float Boid::FAlign_Factor = 2.0f;
+float Boid::FMissileRepel_Factor = 50.0f;
+
+// Ctrl + M + O to collapse ALL functions
+// Ctrl + M + P to expand ALL functions
 
 Main::Main(Context* context) : Sample(context), firstPerson(false)
 {
@@ -102,6 +107,7 @@ void Main::CreateScene()
 	oceanObject->SetCastShadows(true);
 	
 	boidSet.Init(cache, scene_);
+	missile.Init(cache, scene_);
 }
 
 void Main::SubscribeToEvents()
@@ -123,7 +129,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		return;
 	}
 
-	boidSet.Update(timeStep);
+	boidSet.Update(timeStep, &missile);
 
 	Input* input = GetSubsystem<Input>();
 	if (!ignoreInputs)
@@ -153,6 +159,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
 		}
+		if (input->GetMouseButtonDown(MOUSEB_LEFT))
+		{
+			missile.isActive = true;
+		}
 		if (!isMenuVisible)
 		{
 			if (input->GetKeyPress(KEY_M))
@@ -170,6 +180,11 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		}
 	}
 
+	if (missile.missileTimer > 0)
+	{
+		missile.missileTimer -= timeStep;
+	}
+
 	if (!ui->GetCursor()->IsVisible())
 	{
 		ignoreInputs = false;
@@ -177,6 +192,18 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	else
 	{
 		ignoreInputs = true;
+	}
+	if (missile.isActive)
+	{
+		missile.model->SetEnabled(true);
+		missile.rb->SetPosition(cameraNode_->GetPosition());
+		missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
+		if (missile.missileTimer <= 0)
+		{
+			missile.isActive = false;
+			missile.model->SetEnabled(false);
+			missile.missileTimer = 10;
+		}
 	}
 }
 
@@ -372,10 +399,37 @@ Vector3 Boid::Direction(Boid* boid)
 	return desiredDirection;
 }
 
-void Boid::ComputeForce(Boid* boid)
+Vector3 Boid::MissileDodge(Boid* boid, Missile* missile)
+{
+	int neighbourCount = 0;
+	Vector3 dodgeForce = Vector3(0, 0, 0);
+
+	for (int i = 0; i < NUM_BOIDS; i++)
+	{
+		if (this == &boid[i]) continue;
+
+		Vector3 sep = rb->GetPosition() - missile->rb->GetPosition();
+		float distance = sep.Length();
+
+		if (distance < Range_FMissileRepel)
+		{
+			Vector3 delta = (rb->GetPosition() - missile->rb->GetPosition());
+			dodgeForce += (delta / delta.Length());
+			neighbourCount++;
+		}
+	}
+
+	if (neighbourCount > 0)
+	{
+		dodgeForce *= FMissileRepel_Factor;
+	}
+	return dodgeForce;
+}
+
+void Boid::ComputeForce(Boid* boid, Missile* missile)
 {
 	//force = Vector3(0, 0, 0);
-	force = Repel(boid) + Align(boid) + Attract(boid);
+	force = Repel(boid) + Align(boid) + Attract(boid) + MissileDodge(boid, missile);
 
 	/* //Vector3 CoMAttract;
 	//Vector3 CoMAlign;
@@ -540,11 +594,37 @@ void BoidSet::Init(ResourceCache *pRes, Scene* scene)
 	}
 }
 
-void BoidSet::Update(float frameTime)
+void BoidSet::Update(float frameTime, Missile* missile)
 {
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
-		boidList[i].ComputeForce(&boidList[0]);
+		boidList[i].ComputeForce(&boidList[0], missile);
 		boidList[i].Update(frameTime);
 	}
 }
+
+Missile::Missile() : Object(context_)
+{
+
+}
+
+Missile::~Missile()
+{
+
+}
+
+void Missile::Init(ResourceCache* cache, Scene* scene)
+{
+	node = scene->CreateChild("Boid");
+	node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+	rb = node->CreateComponent<RigidBody>();
+	model = node->CreateComponent<StaticModel>();
+	collider = node->CreateComponent<CollisionShape>();
+
+	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
+	model->SetEnabled(false);
+	rb->SetUseGravity(false);
+	rb->SetMass(5.0f);
+	missileTimer = 10;
+}
+
