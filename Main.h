@@ -134,7 +134,7 @@ protected:
 
 
 private:
-
+	int swap = 1;
 	bool firstPerson;
 	bool isMenuVisible = false;
 	bool ignoreInputs = false; 

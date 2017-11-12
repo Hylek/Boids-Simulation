@@ -5,13 +5,13 @@ URHO3D_DEFINE_APPLICATION_MAIN(Main)
 float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
 float Boid::Range_FAlign = 5.0f;
-float Boid::Range_FMissileRepel = 5.0f;
+float Boid::Range_FMissileRepel = 7.0f;
 
 float Boid::FAttract_Vmax = 5.0f;
 
-float Boid::FAttract_Factor = 4.0f;
-float Boid::FRepel_Factor = 2.5f;
-float Boid::FAlign_Factor = 2.0f;
+float Boid::FAttract_Factor = 15.0f;
+float Boid::FRepel_Factor = 12.0f;
+float Boid::FAlign_Factor = 8.0f;
 float Boid::FMissileRepel_Factor = 50.0f;
 
 // Ctrl + M + O to collapse ALL functions
@@ -196,13 +196,18 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (missile.isActive)
 	{
 		missile.model->SetEnabled(true);
-		missile.rb->SetPosition(cameraNode_->GetPosition());
-		missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
+		if (swap == 1)
+		{
+			missile.rb->SetPosition(cameraNode_->GetPosition());
+			missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
+			swap = 0;
+		}
 		if (missile.missileTimer <= 0)
 		{
 			missile.isActive = false;
 			missile.model->SetEnabled(false);
 			missile.missileTimer = 10;
+			swap = 1;
 		}
 	}
 }
