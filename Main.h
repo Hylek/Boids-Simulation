@@ -28,7 +28,10 @@
 #include <Urho3D/UI/UIEvents.h>
 #include <Urho3D/UI/Window.h>
 #include <Urho3D/UI/CheckBox.h>
-#include <Vector>
+#include <Urho3D/Network/Connection.h>
+#include <Urho3D/Network/Network.h>
+#include <Urho3D/Network/NetworkEvents.h>
+
 
 #include "Sample.h"
 
@@ -60,7 +63,6 @@ public:
 	RigidBody* rb;
 	CollisionShape* collider;
 	StaticModel* model;
-	std::vector<Missile> missiles;
 	bool isActive = false;
 	float missileTimer;
 
@@ -113,6 +115,14 @@ public:
 	void Update(float tm, Missile* missile);
 };
 
+class Menu : public Object
+{
+	URHO3D_OBJECT(Menu, Object);
+
+public:
+	Menu();
+	~Menu();
+};
 
 class Main : public Sample
 {
@@ -125,6 +135,8 @@ public:
 
 	virtual void Start();
 	void SubscribeToEvents();
+
+	static const unsigned short SERVER_PORT = 2345;
 
 	BoidSet boidSet;
 	Missile missile;
@@ -140,6 +152,11 @@ private:
 	bool ignoreInputs = false; 
 	SharedPtr<Window> window;
 	UI* ui;
+	Button* connectButton;
+	Button* quitButton;
+	Button* startServerButton;
+	LineEdit* serverAddressEdit;
+	Texture* uiTexture;
 
 	void CreateScene();
 	void CreateMainMenu();
@@ -148,4 +165,9 @@ private:
 	void HandleQuit(StringHash eventType, VariantMap& eventData);
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
+	void HandleStartServer(StringHash eventType, VariantMap& eventData);
+	void HandleConnect(StringHash eventType, VariantMap& eventData);
+	void HandleDisconnect(StringHash eventType, VariantMap& eventData);
+	void HandleConnectedClient(StringHash eventType, VariantMap& eventData);
+	void HandleClientDisconnecting(StringHash eventType, VariantMap& eventData);
 };

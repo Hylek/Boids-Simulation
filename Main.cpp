@@ -35,6 +35,7 @@ void Main::Start()
 	CreateScene();
 	SubscribeToEvents();
 	CreateMainMenu();
+	OpenConsoleWindow();
 }
 
 void Main::CreateScene()
@@ -42,18 +43,18 @@ void Main::CreateScene()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	scene_ = new Scene(context_);
-	scene_->CreateComponent<Octree>();
-	scene_->CreateComponent<PhysicsWorld>();
+	scene_->CreateComponent<Octree>(LOCAL);
+	scene_->CreateComponent<PhysicsWorld>(LOCAL);
 
 	cameraNode_ = new Node(context_);
-	Camera* cam = cameraNode_->CreateComponent<Camera>();
+	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
 	cameraNode_->SetPosition(Vector3(0.0f, 5.0f, 0.0f));
 	cam->SetFarClip(300.0f);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
 
 	// Creating ambient light and fog
-	Node* zoneNode = scene_->CreateChild("Zone");
+	Node* zoneNode = scene_->CreateChild("Zone", LOCAL);
 	Zone* zone = zoneNode->CreateComponent<Zone>();
 	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
 	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
@@ -62,7 +63,7 @@ void Main::CreateScene()
 	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
 
 	// Creating a directional light
-	Node* lightNode = scene_->CreateChild("DirectionalLight");
+	Node* lightNode = scene_->CreateChild("DirectionalLight", LOCAL);
 	lightNode->SetDirection(Vector3(0.3f, -0.5f, 0.425f));
 	Light* light = lightNode->CreateComponent<Light>();
 	light->SetLightType(LIGHT_DIRECTIONAL);
@@ -73,7 +74,7 @@ void Main::CreateScene()
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
 	// Creating the floor
-	Node* floorNode = scene_->CreateChild("Floor");
+	Node* floorNode = scene_->CreateChild("Floor", LOCAL);
 	floorNode->SetPosition(Vector3(0.0f, -0.5f, 0.0f));
 	floorNode->SetScale(Vector3(2000.0f, 1.0f, 2000.0f));
 	StaticModel* object = floorNode->CreateComponent<StaticModel>();
@@ -85,7 +86,7 @@ void Main::CreateScene()
 	shape->SetBox(Vector3::ONE);
 
 	// Creating a box
-	Node* boxNode = scene_->CreateChild("Box");
+	Node* boxNode = scene_->CreateChild("Box", LOCAL);
 	boxNode->SetPosition(Vector3(0.0f, 10.0f, 50.0f));
 	boxNode->SetScale(Vector3(10.0f, 10.0f, 10.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
@@ -98,7 +99,7 @@ void Main::CreateScene()
 	boxCol->SetBox(Vector3::ONE);
 
 	// Creating the ocean base
-	Node* oceanNode = scene_->CreateChild("OceanTop");
+	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
 	oceanNode->SetPosition(Vector3(0.0f, 250.0f, 0.0f));
 	oceanNode->SetScale(Vector3(2000.0f, 0.0f, 2000.0f));
 	StaticModel* oceanObject = oceanNode->CreateComponent<StaticModel>();
@@ -114,6 +115,8 @@ void Main::SubscribeToEvents()
 {
 	SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 	SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(Main, HandlePostUpdate));
+	SubscribeToEvent(E_CLIENTCONNECTED, URHO3D_HANDLER(Main, HandleConnectedClient));
+	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, HandleClientDisconnecting));
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -163,21 +166,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			missile.isActive = true;
 		}
-		if (!isMenuVisible)
-		{
-			if (input->GetKeyPress(KEY_M))
-			{
-				isMenuVisible = true;
-			}
-		}
 	}
-
-	if (isMenuVisible)
+	if (input->GetKeyPress(KEY_M))
 	{
-		if (input->GetKeyPress(KEY_M))
-		{
-			isMenuVisible = true;
-		}
+		isMenuVisible = !isMenuVisible;
 	}
 
 	if (missile.missileTimer > 0)
@@ -219,6 +211,47 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 	window->SetVisible(isMenuVisible);
 }
 
+void Main::HandleStartServer(StringHash eventType, VariantMap & eventData)
+{
+	printf("Starting Server");
+	Network* network = GetSubsystem<Network>();
+	network->StartServer(SERVER_PORT);
+	isMenuVisible = !isMenuVisible;
+}
+
+void Main::HandleConnect(StringHash eventType, VariantMap & eventData)
+{
+	Network* network = GetSubsystem<Network>();
+	String address = serverAddressEdit->GetText().Trimmed();
+
+	if (address.Empty())
+	{
+		address = "localhost";
+	}
+
+	network->Connect(address, SERVER_PORT, scene_);
+}
+
+void Main::HandleDisconnect(StringHash eventType, VariantMap & eventData)
+{
+
+}
+
+void Main::HandleConnectedClient(StringHash eventType, VariantMap & eventData)
+{
+	printf("A client has connected to the server");
+	using namespace ClientConnected;
+
+	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
+	newConnection->SetScene(scene_);
+}
+
+void Main::HandleClientDisconnecting(StringHash eventType, VariantMap & eventData)
+{
+	printf("A client has disconnected from the server");
+	using namespace ClientConnected;
+}
+
 void Main::CreateMainMenu()
 {
 	InitMouseMode(MM_RELATIVE);
@@ -236,6 +269,7 @@ void Main::CreateMainMenu()
 	root->AddChild(window);
 
 	window->SetMinWidth(384);
+	window->SetMinHeight(200);
 	window->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
 	window->SetAlignment(HA_CENTER, VA_CENTER);
 	window->SetName("Window");
@@ -243,13 +277,14 @@ void Main::CreateMainMenu()
 
 	Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
 
-	CreateButton(font, "Button 1", 24, window);
-	CreateButton(font, "Button 2", 24, window);
-	CreateButton(font, "Quit", 24, window);
+	connectButton = CreateButton(font, "Connect", 24, window);
+	startServerButton = CreateButton(font, "Start Server", 24, window);
+	quitButton = CreateButton(font, "Quit Game", 24, window);
+	serverAddressEdit = CreateLineEdit("localhost", 12, window);
 
-	CreateLineEdit("LineText", 24, window);
-
-	SubscribeToEvent(NULL, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit)); // FIX THE NULL ENTRY
+	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
+	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, HandleStartServer));
+	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, HandleConnect));
 }
 
 Button* Main::CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow)
@@ -632,4 +667,3 @@ void Missile::Init(ResourceCache* cache, Scene* scene)
 	rb->SetMass(5.0f);
 	missileTimer = 10;
 }
-
