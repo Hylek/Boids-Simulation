@@ -616,7 +616,7 @@ void Boid::Update(float frameTime)
 	} */
 }
 
-BoidSet::BoidSet() : Object(context_)
+BoidSet::BoidSet() //: Object(context_)
 {
 	
 }
@@ -643,7 +643,7 @@ void BoidSet::Update(float frameTime, Missile* missile)
 	}
 }
 
-Missile::Missile() : Object(context_)
+Missile::Missile() // : Object(context_)
 {
 
 }

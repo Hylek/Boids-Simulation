@@ -49,9 +49,8 @@ namespace Urho3D
 	class Window;
 }
 
-class Missile : public Object
+class Missile
 {
-	URHO3D_OBJECT(Missile, Object);
 
 public:
 	Missile();
@@ -101,9 +100,8 @@ public:
 	StaticModel* model;
 };
 
-class BoidSet : public Object
+class BoidSet
 {
-	URHO3D_OBJECT(BoidSet, Object);
 
 public:
 	BoidSet();
@@ -115,10 +113,8 @@ public:
 	void Update(float tm, Missile* missile);
 };
 
-class Menu : public Object
+class Menu 
 {
-	URHO3D_OBJECT(Menu, Object);
-
 public:
 	Menu();
 	~Menu();
