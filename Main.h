@@ -16,6 +16,7 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/UI/Font.h>
@@ -113,13 +114,6 @@ public:
 	void Update(float tm, Missile* missile);
 };
 
-class Menu 
-{
-public:
-	Menu();
-	~Menu();
-};
-
 class Main : public Sample
 {
     URHO3D_OBJECT(Main, Sample);
@@ -146,6 +140,13 @@ private:
 	bool firstPerson;
 	bool isMenuVisible = false;
 	bool ignoreInputs = false; 
+
+	int CTRL_FORWARD = 1;
+	int CTRL_BACK = 2;
+	int CTRL_LEFT = 3;
+	int CTRL_RIGHT = 4;
+	int CTRL_ACTION = 1024;
+
 	SharedPtr<Window> window;
 	UI* ui;
 	Button* connectButton;
@@ -166,4 +167,8 @@ private:
 	void HandleDisconnect(StringHash eventType, VariantMap& eventData);
 	void HandleConnectedClient(StringHash eventType, VariantMap& eventData);
 	void HandleClientDisconnecting(StringHash eventType, VariantMap& eventData);
+	void HandlePhysicsPreStep(StringHash eventType, VariantMap& eventData);
+	void HandleClientFinishedLoading(StringHash eventType, VariantMap& eventData);
+	void ProcessClientControls();
+	Controls ClientToServerControls();
 };

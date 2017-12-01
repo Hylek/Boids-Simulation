@@ -115,6 +115,7 @@ void Main::SubscribeToEvents()
 {
 	SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 	SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(Main, HandlePostUpdate));
+	SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Main, HandlePhysicsPreStep));
 	SubscribeToEvent(E_CLIENTCONNECTED, URHO3D_HANDLER(Main, HandleConnectedClient));
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, HandleClientDisconnecting));
 }
@@ -250,6 +251,59 @@ void Main::HandleClientDisconnecting(StringHash eventType, VariantMap & eventDat
 {
 	printf("A client has disconnected from the server");
 	using namespace ClientConnected;
+}
+
+void Main::HandlePhysicsPreStep(StringHash eventType, VariantMap & eventData)
+{
+	Network* network = GetSubsystem<Network>();
+	Connection* serverConnection = network->GetServerConnection();
+
+	if (serverConnection)	// Client
+	{
+		serverConnection->SetPosition(cameraNode_->GetPosition());
+		serverConnection->SetControls(ClientToServerControls());
+	}
+	else if (network->IsServerRunning())	// Server
+	{
+		//ProcessClientControls();
+	}
+}
+
+void Main::HandleClientFinishedLoading(StringHash eventType, VariantMap & eventData)
+{
+
+}
+
+void Main::ProcessClientControls()
+{
+	Network* network = GetSubsystem<Network>();
+	const Vector<SharedPtr<Connection> >& connections = network->GetClientConnections();
+	//go through every client connected
+	for (unsigned i = 0; i < connections.Size(); ++i)
+	{
+		Connection* connection = connections[i];
+		const Controls& controls = connection->GetControls();
+		if (controls.buttons_ & CTRL_FORWARD)  printf("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)     printf("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	   printf("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)    printf("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_ACTION)   printf("Received from client: E pressed \n");
+	}
+}
+
+Controls Main::ClientToServerControls()
+{
+	Input* input = GetSubsystem<Input>();
+	Controls controls;
+
+	controls.Set(CTRL_FORWARD, input->GetKeyDown(KEY_W));
+	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
+	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
+	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
+	controls.Set(CTRL_ACTION, input->GetKeyDown(KEY_E));
+
+	controls.yaw_ = yaw_;
+	return controls;
 }
 
 void Main::CreateMainMenu()
