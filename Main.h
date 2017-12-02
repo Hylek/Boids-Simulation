@@ -57,7 +57,7 @@ public:
 	Missile();
 	~Missile();
 
-	void Init(ResourceCache* cache, Scene* scene);
+	Node* CreateMissile(ResourceCache* cache, Scene* scene);
 
 	Node* node;
 	RigidBody* rb;
@@ -140,6 +140,7 @@ private:
 	bool firstPerson;
 	bool isMenuVisible = false;
 	bool ignoreInputs = false; 
+	unsigned clientObjectID = 0;
 
 	int CTRL_FORWARD = 1;
 	int CTRL_BACK = 2;
@@ -148,10 +149,12 @@ private:
 	int CTRL_ACTION = 1024;
 
 	SharedPtr<Window> window;
+	HashMap<Connection*, WeakPtr<Node> > serverObjects;
 	UI* ui;
 	Button* connectButton;
 	Button* quitButton;
 	Button* startServerButton;
+	Button* clientStartGame;
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
 
@@ -169,6 +172,10 @@ private:
 	void HandleClientDisconnecting(StringHash eventType, VariantMap& eventData);
 	void HandlePhysicsPreStep(StringHash eventType, VariantMap& eventData);
 	void HandleClientFinishedLoading(StringHash eventType, VariantMap& eventData);
+	void HandleClientStartGame(StringHash eventType, VariantMap& eventData);
+	void HandleClientToServerReadyToStart(StringHash eventType, VariantMap& eventData);
+	void HandleServerToClientObjectID(StringHash eventType, VariantMap& eventData);
 	void ProcessClientControls();
 	Controls ClientToServerControls();
+	Node* CreateControllableObject();
 };

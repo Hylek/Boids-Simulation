@@ -2,6 +2,10 @@
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main)
 
+static const StringHash E_CLIENTOBJECTAUTHORITY("ClientObjectAuthority");
+static const StringHash PLAYER_ID("IDENTITY");
+static const StringHash E_CLIENTISREADY("ClientReadyToStart");
+
 float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
 float Boid::Range_FAlign = 5.0f;
@@ -108,7 +112,8 @@ void Main::CreateScene()
 	oceanObject->SetCastShadows(true);
 	
 	boidSet.Init(cache, scene_);
-	missile.Init(cache, scene_);
+
+	Node* missileNode = missile.CreateMissile(cache, scene_);
 }
 
 void Main::SubscribeToEvents()
@@ -118,6 +123,11 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Main, HandlePhysicsPreStep));
 	SubscribeToEvent(E_CLIENTCONNECTED, URHO3D_HANDLER(Main, HandleConnectedClient));
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, HandleClientDisconnecting));
+	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, HandleClientToServerReadyToStart));
+	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, HandleServerToClientObjectID));
+
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -235,7 +245,24 @@ void Main::HandleConnect(StringHash eventType, VariantMap & eventData)
 
 void Main::HandleDisconnect(StringHash eventType, VariantMap & eventData)
 {
+	printf("HandleDisconnect has been pressed. \n");
 
+	Network* network = GetSubsystem<Network>();
+	Connection* serverConnection = network->GetServerConnection();
+
+	// Running as Client
+	if (serverConnection)
+	{
+		serverConnection->Disconnect();
+		scene_->Clear(true, false);
+		clientObjectID = 0;
+	}
+	// Running as a server, stop it
+	else if (network->IsServerRunning())
+	{
+		network->StopServer();
+		scene_->Clear(true, false);
+	}
 }
 
 void Main::HandleConnectedClient(StringHash eventType, VariantMap & eventData)
@@ -274,6 +301,43 @@ void Main::HandleClientFinishedLoading(StringHash eventType, VariantMap & eventD
 
 }
 
+void Main::HandleClientStartGame(StringHash eventType, VariantMap & eventData)
+{
+	printf("Client has pressed START GAME \n");
+	if (clientObjectID == 0)
+	{
+		Network* network = GetSubsystem<Network>();
+		Connection* serverConnection = network->GetServerConnection();
+		if (serverConnection)
+		{
+			VariantMap remoteEventData;
+			remoteEventData[PLAYER_ID] = 0;
+			serverConnection->SendRemoteEvent(E_CLIENTISREADY, true, remoteEventData);
+		}
+	}
+}
+
+void Main::HandleClientToServerReadyToStart(StringHash eventType, VariantMap & eventData)
+{
+	printf("Event sent by the Client and running on Server: Client is ready to start the game \n");
+
+	using namespace ClientConnected;
+	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
+
+	Node* newObject = CreateControllableObject();
+	serverObjects[newConnection] = newObject;
+
+	VariantMap remoteEventData;
+	remoteEventData[PLAYER_ID] = newObject->GetID();
+	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
+}
+
+void Main::HandleServerToClientObjectID(StringHash eventType, VariantMap & eventData)
+{
+	clientObjectID = eventData[PLAYER_ID].GetUInt();
+	printf("Client ID : %i \n", clientObjectID);
+}
+
 void Main::ProcessClientControls()
 {
 	Network* network = GetSubsystem<Network>();
@@ -306,6 +370,28 @@ Controls Main::ClientToServerControls()
 	return controls;
 }
 
+Node* Main::CreateControllableObject()
+{
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+
+	Node* ballNode = scene_->CreateChild("ClientBall");
+	ballNode->SetPosition(Vector3(0.0f, 5.0f, 0.0f));
+	ballNode->SetScale(2.5f);
+	StaticModel* ballObject = ballNode->CreateComponent<StaticModel>();
+	ballObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
+	ballObject->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
+
+	RigidBody* body = ballNode->CreateComponent<RigidBody>();
+	body->SetMass(1.0f);
+	body->SetFriction(1.0f);
+	body->SetLinearDamping(0.25f);
+	body->SetAngularDamping(0.25f);
+	CollisionShape* shape = ballNode->CreateComponent<CollisionShape>();
+	shape->SetSphere(1.0f);
+
+	return ballNode;
+}
+
 void Main::CreateMainMenu()
 {
 	InitMouseMode(MM_RELATIVE);
@@ -333,12 +419,14 @@ void Main::CreateMainMenu()
 
 	connectButton = CreateButton(font, "Connect", 24, window);
 	startServerButton = CreateButton(font, "Start Server", 24, window);
+	clientStartGame = CreateButton(font, "Client: Start Game", 24, window);
 	quitButton = CreateButton(font, "Quit Game", 24, window);
 	serverAddressEdit = CreateLineEdit("localhost", 12, window);
 
 	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
 	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, HandleStartServer));
 	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, HandleConnect));
+	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, HandleClientStartGame));
 }
 
 Button* Main::CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow)
@@ -707,9 +795,9 @@ Missile::~Missile()
 
 }
 
-void Missile::Init(ResourceCache* cache, Scene* scene)
+Node* Missile::CreateMissile(ResourceCache* cache, Scene* scene)
 {
-	node = scene->CreateChild("Boid");
+	node = scene->CreateChild("Missile");
 	node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
@@ -719,5 +807,7 @@ void Missile::Init(ResourceCache* cache, Scene* scene)
 	model->SetEnabled(false);
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
-	missileTimer = 10;
+	missileTimer = 5;
+
+	return node;
 }
