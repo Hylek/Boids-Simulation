@@ -798,7 +798,7 @@ Missile::~Missile()
 Node* Missile::CreateMissile(ResourceCache* cache, Scene* scene)
 {
 	node = scene->CreateChild("Missile");
-	node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+	// node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
