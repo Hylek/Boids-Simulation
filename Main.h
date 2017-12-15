@@ -38,7 +38,7 @@
 
 using namespace Urho3D;
 
-const static int NUM_BOIDS = 100;
+const static short int NUM_BOIDS = 100;
 
 namespace Urho3D
 {
@@ -58,6 +58,7 @@ public:
 	~Missile();
 
 	Node* CreateMissile(ResourceCache* cache, Scene* scene);
+
 
 	Node* node;
 	RigidBody* rb;
@@ -114,6 +115,13 @@ public:
 	void Update(float tm, Missile* missile);
 };
 
+class Bubbles
+{
+public:
+	Bubbles();
+	~Bubbles();
+};
+
 class Main : public Sample
 {
     URHO3D_OBJECT(Main, Sample);
@@ -131,12 +139,11 @@ public:
 	BoidSet boidSet;
 	Missile missile;
 
-
 protected:
 
 
 private:
-	int swap = 1;
+	unsigned short int swap = 1;
 	bool firstPerson;
 	bool isMenuVisible = false;
 	bool ignoreInputs = false; 

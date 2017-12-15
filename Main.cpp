@@ -9,14 +9,14 @@ static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
 float Boid::Range_FAlign = 5.0f;
-float Boid::Range_FMissileRepel = 7.0f;
+float Boid::Range_FMissileRepel = 4.0f;
 
 float Boid::FAttract_Vmax = 5.0f;
 
 float Boid::FAttract_Factor = 15.0f;
 float Boid::FRepel_Factor = 12.0f;
 float Boid::FAlign_Factor = 8.0f;
-float Boid::FMissileRepel_Factor = 50.0f;
+float Boid::FMissileRepel_Factor = 25.0f;
 
 // Ctrl + M + O to collapse ALL functions
 // Ctrl + M + P to expand ALL functions
@@ -38,8 +38,8 @@ void Main::Start()
 
 	CreateScene();
 	SubscribeToEvents();
-	CreateMainMenu();
 	OpenConsoleWindow();
+	CreateMainMenu();
 }
 
 void Main::CreateScene()
@@ -102,15 +102,16 @@ void Main::CreateScene()
 	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
 	boxCol->SetBox(Vector3::ONE);
 
-	// Creating the ocean base
+	// Creating the ocean water
 	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
-	oceanNode->SetPosition(Vector3(0.0f, 250.0f, 0.0f));
+	oceanNode->SetPosition(Vector3(0.0f, 50.0f, 0.0f));
 	oceanNode->SetScale(Vector3(2000.0f, 0.0f, 2000.0f));
 	StaticModel* oceanObject = oceanNode->CreateComponent<StaticModel>();
 	oceanObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	oceanObject->SetMaterial(cache->GetResource<Material>("Materials/Water.xml"));
 	oceanObject->SetCastShadows(true);
-	
+
+	// Creating the skybox
 	boidSet.Init(cache, scene_);
 
 	Node* missileNode = missile.CreateMissile(cache, scene_);
@@ -182,12 +183,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		isMenuVisible = !isMenuVisible;
 	}
-
 	if (missile.missileTimer > 0)
 	{
 		missile.missileTimer -= timeStep;
 	}
-
 	if (!ui->GetCursor()->IsVisible())
 	{
 		ignoreInputs = false;
@@ -569,7 +568,6 @@ Vector3 Boid::Repel(Boid* boid)
 	if (neighbourCount > 0)
 	{
 		repelForce *= FRepel_Factor;
-		//repelForce += ((rb->GetPosition() - neighbourPos) / (rb->GetPosition() - neighbourPos).Normalized() * (rb->GetPosition() - neighbourPos).Normalized()) * FRepel_Factor;
 	}
 	return repelForce;
 }
@@ -612,95 +610,6 @@ void Boid::ComputeForce(Boid* boid, Missile* missile)
 {
 	//force = Vector3(0, 0, 0);
 	force = Repel(boid) + Align(boid) + Attract(boid) + MissileDodge(boid, missile);
-
-	/* //Vector3 CoMAttract;
-	//Vector3 CoMAlign;
-	//Vector3 CoMRepulse;
-	//int neighbourCount = 0;
-	//force = Vector3(0, 0, 0);
-	//Vector3 attractForce = Vector3(0, 0, 0);
-	//Vector3 alignForce = Vector3(0, 0, 0);
-	//Vector3 repelForce = Vector3(0, 0, 0);
-	//Vector3 repelDelta = Vector3(0, 0, 0);
-
-
-	//for (int i = 0; i < NUM_BOIDS; i++)
-	//{
-	//	if (this == &boid[i]) continue;
-
-	//	Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-	//	float d = sep.Length();
-
-	//	if (d < Range_FAttract)
-	//	{
-	//		CoMAttract += boid[i].rb->GetPosition();
-	//		neighbourCount++;
-	//	}
-
-	//	if (d < Range_FAlign)
-	//	{
-	//		CoMAlign += boid[i].rb->GetLinearVelocity();
-	//		neighbourCount++;
-	//	}
-
-	//	// Separation Force
-	//	if (d < Range_FRepel)
-	//	{
-	//		repelDelta = (rb->GetPosition() - boid[i].rb->GetPosition());
-	//		repelDelta / repelDelta.LengthSquared() * repelDelta.LengthSquared();
-	//		neighbourCount++;
-	//	}
-	//}
-
-
-	//if (neighbourCount > 0)
-	//{
-	//	// Attraction Force
-	//	CoMAttract /= neighbourCount;
-	//	Vector3 direction = (CoMAttract - rb->GetPosition()).Normalized();
-	//	Vector3 vDesired = direction * FAttract_Vmax;
-	//	attractForce += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
-
-	//	// Align Force
-	//	CoMAlign /= neighbourCount;
-	//	alignForce += (CoMAlign - rb->GetLinearVelocity()) * FAlign_Factor;
-
-	//	// Repel Force
-	//	repelForce += repelDelta * FRepel_Factor;
-	//} */
-	/* Vector3 repelForce;
-	Vector3 attractForce;
-	Vector3 alignForce;
-	Vector3 finalForce;
-	Vector3 posMean;
-	Vector3 velMean;
-
-	for (int i = 0; i < NUM_BOIDS; i++)
-	{
-		if (this == &boid[i]) continue;
-
-		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-		float d = sep.Length();
-		posMean += boid[i].rb->GetPosition();
-		velMean += boid[i].rb->GetLinearVelocity();
-
-		if (d < Range_FRepel)
-		{
-			Vector3 delta = rb->GetPosition() - boid[i].rb->GetPosition();
-			repelForce += (delta / delta * delta);
-		}
-	}
-
-	repelForce *= FRepel_Factor;
-
-	posMean /= NUM_BOIDS;
-	attractForce = FAttract_Factor * ((((posMean - rb->GetPosition()) / ((posMean - rb->GetPosition()).Normalized()) * FAttract_Vmax) - rb->GetLinearVelocity()));
-
-	velMean /= NUM_BOIDS;
-	alignForce = FAlign_Factor * (velMean - rb->GetLinearVelocity());
-
-
-	force = repelForce + attractForce + alignForce; */
 }
 
 void Boid::Update(float frameTime)
@@ -798,7 +707,6 @@ Missile::~Missile()
 Node* Missile::CreateMissile(ResourceCache* cache, Scene* scene)
 {
 	node = scene->CreateChild("Missile");
-	// node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
