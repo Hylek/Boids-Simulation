@@ -7,6 +7,8 @@
 #include <Urho3D/Graphics/Camera.h>
 #include <Urho3D/Graphics/Light.h>
 #include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Skybox.h>
+#include <Urho3D/Graphics/Terrain.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/Zone.h>
@@ -165,8 +167,9 @@ private:
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
 
-	void CreateScene();
-	void CreateMainMenu();
+	void CreateMenuScene();
+	void CreateLocalScene();
+	void CreateGameMenu();
 	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow);
 	Button* CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow);
 	void HandleQuit(StringHash eventType, VariantMap& eventData);

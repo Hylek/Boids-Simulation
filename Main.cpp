@@ -36,13 +36,18 @@ void Main::Start()
 	Sample::Start();
 	Sample::InitMouseMode(MM_RELATIVE);
 
-	CreateScene();
+	//OpenConsoleWindow();
+	CreateLocalScene();
 	SubscribeToEvents();
-	OpenConsoleWindow();
-	CreateMainMenu();
+	CreateGameMenu();
 }
 
-void Main::CreateScene()
+void Main::CreateMenuScene()
+{
+
+}
+
+void Main::CreateLocalScene()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
@@ -53,7 +58,7 @@ void Main::CreateScene()
 	cameraNode_ = new Node(context_);
 	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
 	cameraNode_->SetPosition(Vector3(0.0f, 5.0f, 0.0f));
-	cam->SetFarClip(300.0f);
+	cam->SetFarClip(1000.0f);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
 
@@ -62,8 +67,8 @@ void Main::CreateScene()
 	Zone* zone = zoneNode->CreateComponent<Zone>();
 	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
 	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
-	zone->SetFogStart(50.0f);
-	zone->SetFogEnd(2000.0f);
+	zone->SetFogStart(10.0f);
+	zone->SetFogEnd(5000.0f);
 	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
 
 	// Creating a directional light
@@ -76,18 +81,6 @@ void Main::CreateScene()
 	light->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 	light->SetSpecularIntensity(0.5f);
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
-
-	// Creating the floor
-	Node* floorNode = scene_->CreateChild("Floor", LOCAL);
-	floorNode->SetPosition(Vector3(0.0f, -0.5f, 0.0f));
-	floorNode->SetScale(Vector3(2000.0f, 1.0f, 2000.0f));
-	StaticModel* object = floorNode->CreateComponent<StaticModel>();
-	object->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	object->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-	RigidBody* body = floorNode->CreateComponent<RigidBody>();
-	body->SetCollisionLayer(2);
-	CollisionShape* shape = floorNode->CreateComponent<CollisionShape>();
-	shape->SetBox(Vector3::ONE);
 
 	// Creating a box
 	Node* boxNode = scene_->CreateChild("Box", LOCAL);
@@ -104,14 +97,30 @@ void Main::CreateScene()
 
 	// Creating the ocean water
 	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
-	oceanNode->SetPosition(Vector3(0.0f, 50.0f, 0.0f));
+	oceanNode->SetPosition(Vector3(0.0f, 100.0f, 0.0f));
 	oceanNode->SetScale(Vector3(2000.0f, 0.0f, 2000.0f));
 	StaticModel* oceanObject = oceanNode->CreateComponent<StaticModel>();
 	oceanObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	oceanObject->SetMaterial(cache->GetResource<Material>("Materials/Water.xml"));
 	oceanObject->SetCastShadows(true);
 
+	Node* terrainNode = scene_->CreateChild("Terrain", LOCAL);
+	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
+	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
+	terrain->SetPatchSize(64);
+	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f)); // Spacing between vertices and vertical resolution of the height map
+	terrain->SetSmoothing(true);
+	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
+	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
+	// The terrain consists of large triangles, which fits well for occlusion rendering, as a hill can occlude all
+	// terrain patches and other objects behind it
+	terrain->SetOccluder(true);
+
 	// Creating the skybox
+	Node* skyNode = scene_->CreateChild("Sky", LOCAL);
+	Skybox* skybox = skyNode->CreateComponent<Skybox>();
+	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 	boidSet.Init(cache, scene_);
 
 	Node* missileNode = missile.CreateMissile(cache, scene_);
@@ -391,7 +400,7 @@ Node* Main::CreateControllableObject()
 	return ballNode;
 }
 
-void Main::CreateMainMenu()
+void Main::CreateGameMenu()
 {
 	InitMouseMode(MM_RELATIVE);
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
