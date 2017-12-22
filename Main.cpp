@@ -232,14 +232,15 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 
 void Main::HandleStartServer(StringHash eventType, VariantMap & eventData)
 {
-	printf("Starting Server");
+	Log::WriteRaw("*HANDLESTARTSERVER CALLED: Starting Server");
 	Network* network = GetSubsystem<Network>();
 	network->StartServer(SERVER_PORT);
 	isMenuVisible = !isMenuVisible;
 }
-
+// THIS FUNCTION CAUSES THE RUNTIME ISSUE
 void Main::HandleConnect(StringHash eventType, VariantMap & eventData)
 {
+	CreateLocalScene();
 	Network* network = GetSubsystem<Network>();
 	String address = serverAddressEdit->GetText().Trimmed();
 
@@ -253,7 +254,7 @@ void Main::HandleConnect(StringHash eventType, VariantMap & eventData)
 
 void Main::HandleDisconnect(StringHash eventType, VariantMap & eventData)
 {
-	printf("HandleDisconnect has been pressed. \n");
+	Log::WriteRaw("*HANDLEDISCONNECT CALLED: Client has disconnected");
 
 	Network* network = GetSubsystem<Network>();
 	Connection* serverConnection = network->GetServerConnection();
@@ -275,7 +276,7 @@ void Main::HandleDisconnect(StringHash eventType, VariantMap & eventData)
 
 void Main::HandleConnectedClient(StringHash eventType, VariantMap & eventData)
 {
-	printf("A client has connected to the server");
+	Log::WriteRaw("*HANDLECONNECTEDCLIENT CALLED: A client has connected to the server");
 	using namespace ClientConnected;
 
 	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
@@ -284,7 +285,7 @@ void Main::HandleConnectedClient(StringHash eventType, VariantMap & eventData)
 
 void Main::HandleClientDisconnecting(StringHash eventType, VariantMap & eventData)
 {
-	printf("A client has disconnected from the server");
+	Log::WriteRaw("*HANDLECLIENTDISCONNECTING CALLED: A client has disconnected from the server");
 	using namespace ClientConnected;
 }
 
@@ -300,7 +301,7 @@ void Main::HandlePhysicsPreStep(StringHash eventType, VariantMap & eventData)
 	}
 	else if (network->IsServerRunning())	// Server
 	{
-		//ProcessClientControls();
+		ProcessClientControls();
 	}
 }
 
@@ -311,7 +312,7 @@ void Main::HandleClientFinishedLoading(StringHash eventType, VariantMap & eventD
 
 void Main::HandleClientStartGame(StringHash eventType, VariantMap & eventData)
 {
-	printf("Client has pressed START GAME \n");
+	Log::WriteRaw("*HANDLECLIENTSTARTGAME CALLED: Client has pressed START GAME \n");
 	if (clientObjectID == 0)
 	{
 		Network* network = GetSubsystem<Network>();
@@ -327,7 +328,7 @@ void Main::HandleClientStartGame(StringHash eventType, VariantMap & eventData)
 
 void Main::HandleClientToServerReadyToStart(StringHash eventType, VariantMap & eventData)
 {
-	printf("Event sent by the Client and running on Server: Client is ready to start the game \n");
+	Log::WriteRaw("*HANDLECLIENTTOSERVERREADYTOSTART CALLED: Event sent by the Client and running on Server: Client is ready to start the game \n");
 
 	using namespace ClientConnected;
 	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
@@ -343,7 +344,7 @@ void Main::HandleClientToServerReadyToStart(StringHash eventType, VariantMap & e
 void Main::HandleServerToClientObjectID(StringHash eventType, VariantMap & eventData)
 {
 	clientObjectID = eventData[PLAYER_ID].GetUInt();
-	printf("Client ID : %i \n", clientObjectID);
+	Log::WriteRaw("Client ID : %i \n", clientObjectID);
 }
 
 void Main::ProcessClientControls()
@@ -355,11 +356,11 @@ void Main::ProcessClientControls()
 	{
 		Connection* connection = connections[i];
 		const Controls& controls = connection->GetControls();
-		if (controls.buttons_ & CTRL_FORWARD)  printf("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)     printf("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	   printf("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)    printf("Received from Client: Controls buttons RIGHT \n");
-		if (controls.buttons_ & CTRL_ACTION)   printf("Received from client: E pressed \n");
+		if (controls.buttons_ & CTRL_FORWARD)  Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)     Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	   Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)    Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_ACTION)   Log::WriteRaw("Received from client: E pressed \n");
 	}
 }
 
@@ -703,7 +704,7 @@ void BoidSet::Update(float frameTime, Missile* missile)
 	}
 }
 
-Missile::Missile() // : Object(context_)
+Missile::Missile()
 {
 
 }
