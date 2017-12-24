@@ -46,9 +46,6 @@ namespace Urho3D
 {
 	class Node;
 	class Scene;
-	class RigidBody;
-	class CollisionShape;
-	class ResourceCache;
 	class Window;
 }
 
@@ -134,12 +131,14 @@ public:
     ~Main();
 
 	virtual void Start();
-	void SubscribeToEvents();
 
 	static const unsigned short SERVER_PORT = 2345;
 
 	BoidSet boidSet;
 	Missile missile;
+
+	int spatialGrid[50][50];
+	bool isServer;
 
 protected:
 
@@ -159,8 +158,8 @@ private:
 
 	SharedPtr<Window> window;
 	HashMap<Connection*, WeakPtr<Node> > serverObjects;
-	UI* ui;
 	Button* connectButton;
+	Button* disconnectButton;
 	Button* quitButton;
 	Button* startServerButton;
 	Button* clientStartGame;
@@ -169,16 +168,18 @@ private:
 
 	void CreateMenuScene();
 	void CreateLocalScene();
+	void SubscribeToEvents();
 	void CreateGameMenu();
+	void CreateSpatialGrid();
 	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow);
-	Button* CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow);
+	Button* CreateButton(const String& text, int pHeight, Urho3D::Window* whichWindow);
 	void HandleQuit(StringHash eventType, VariantMap& eventData);
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 	void HandleStartServer(StringHash eventType, VariantMap& eventData);
 	void HandleConnect(StringHash eventType, VariantMap& eventData);
 	void HandleDisconnect(StringHash eventType, VariantMap& eventData);
-	void HandleConnectedClient(StringHash eventType, VariantMap& eventData);
+	void HandleClientConnected(StringHash eventType, VariantMap& eventData);
 	void HandleClientDisconnecting(StringHash eventType, VariantMap& eventData);
 	void HandlePhysicsPreStep(StringHash eventType, VariantMap& eventData);
 	void HandleClientFinishedLoading(StringHash eventType, VariantMap& eventData);

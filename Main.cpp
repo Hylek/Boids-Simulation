@@ -34,17 +34,16 @@ Main::~Main()
 void Main::Start()
 {
 	Sample::Start();
-	Sample::InitMouseMode(MM_RELATIVE);
-
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	//OpenConsoleWindow();
 	CreateLocalScene();
 	SubscribeToEvents();
+	Sample::InitMouseMode(MM_RELATIVE);
 	CreateGameMenu();
-}
+	isServer = false;
 
-void Main::CreateMenuScene()
-{
-
+	boidSet.Init(cache, scene_);
+	missile.CreateMissile(cache, scene_);
 }
 
 void Main::CreateLocalScene()
@@ -57,7 +56,7 @@ void Main::CreateLocalScene()
 
 	cameraNode_ = new Node(context_);
 	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
-	cameraNode_->SetPosition(Vector3(0.0f, 5.0f, 0.0f));
+	cameraNode_->SetPosition(Vector3(30.0f, 40.0f, 0.0f));
 	cam->SetFarClip(1000.0f);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
@@ -67,8 +66,8 @@ void Main::CreateLocalScene()
 	Zone* zone = zoneNode->CreateComponent<Zone>();
 	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
 	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
-	zone->SetFogStart(10.0f);
-	zone->SetFogEnd(5000.0f);
+	zone->SetFogStart(100.0f);
+	zone->SetFogEnd(1000.0f);
 	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
 
 	// Creating a directional light
@@ -82,18 +81,18 @@ void Main::CreateLocalScene()
 	light->SetSpecularIntensity(0.5f);
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
-	// Creating a box
-	Node* boxNode = scene_->CreateChild("Box", LOCAL);
-	boxNode->SetPosition(Vector3(0.0f, 10.0f, 50.0f));
-	boxNode->SetScale(Vector3(10.0f, 10.0f, 10.0f));
-	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
-	boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-	boxObject->SetCastShadows(true);
-	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
-	boxRB->SetCollisionLayer(2);
-	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
-	boxCol->SetBox(Vector3::ONE);
+	//// Creating a box
+	//Node* boxNode = scene_->CreateChild("Box", LOCAL);
+	//boxNode->SetPosition(Vector3(0.0f, 10.0f, 50.0f));
+	//boxNode->SetScale(Vector3(10.0f, 10.0f, 10.0f));
+	//StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
+	//boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+	//boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+	//boxObject->SetCastShadows(true);
+	//RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
+	//boxRB->SetCollisionLayer(2);
+	//CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
+	//boxCol->SetBox(Vector3::ONE);
 
 	// Creating the ocean water
 	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
@@ -104,6 +103,7 @@ void Main::CreateLocalScene()
 	oceanObject->SetMaterial(cache->GetResource<Material>("Materials/Water.xml"));
 	oceanObject->SetCastShadows(true);
 
+	// Creating the terrains
 	Node* terrainNode = scene_->CreateChild("Terrain", LOCAL);
 	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
@@ -112,18 +112,16 @@ void Main::CreateLocalScene()
 	terrain->SetSmoothing(true);
 	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
-	// The terrain consists of large triangles, which fits well for occlusion rendering, as a hill can occlude all
-	// terrain patches and other objects behind it
 	terrain->SetOccluder(true);
+	terrain->SetCastShadows(true);
+	CollisionShape* collider = terrainNode->CreateComponent<CollisionShape>();
+	collider->SetTerrain(0);
 
 	// Creating the skybox
 	Node* skyNode = scene_->CreateChild("Sky", LOCAL);
 	Skybox* skybox = skyNode->CreateComponent<Skybox>();
 	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
-	boidSet.Init(cache, scene_);
-
-	Node* missileNode = missile.CreateMissile(cache, scene_);
 }
 
 void Main::SubscribeToEvents()
@@ -131,11 +129,10 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 	SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(Main, HandlePostUpdate));
 	SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Main, HandlePhysicsPreStep));
-	SubscribeToEvent(E_CLIENTCONNECTED, URHO3D_HANDLER(Main, HandleConnectedClient));
+	SubscribeToEvent(E_CLIENTCONNECTED, URHO3D_HANDLER(Main, HandleClientConnected));
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, HandleClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, HandleClientToServerReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, HandleServerToClientObjectID));
-
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 }
@@ -145,25 +142,20 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	using namespace Update;
 
 	float timeStep = eventData[P_TIMESTEP].GetFloat();
+
+	if (GetSubsystem<UI>()->GetFocusElement()) return;
+
+	UI* ui = GetSubsystem<UI>();
+	Input* input = GetSubsystem<Input>();
 	const float MOVE_SPEED = 40.0f;
 	const float MOUSE_SENSITIVITY = 0.1f;
-
-	if (GetSubsystem<UI>()->GetFocusElement())
-	{
-		return;
-	}
-
-	boidSet.Update(timeStep, &missile);
-
-	Input* input = GetSubsystem<Input>();
+	// Adjust node yaw and pitch via mouse movement and limit pitch between -90 to 90
+	IntVector2 mouseMove = input->GetMouseMove();
+	yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
+	pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
+	pitch_ = Clamp(pitch_, -90.0f, 90.0f);
 	if (!ignoreInputs)
 	{
-		// Adjust node yaw and pitch via mouse movement and limit pitch between -90 to 90
-		IntVector2 mouseMove = input->GetMouseMove();
-		yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
-		pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
-		pitch_ = Clamp(pitch_, -90.0f, 90.0f);
-
 		// Make new camera orientation for the camera scene node, roll is 0
 		cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
 
@@ -204,27 +196,32 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		ignoreInputs = true;
 	}
-	if (missile.isActive)
+	if (isServer)
 	{
-		missile.model->SetEnabled(true);
-		if (swap == 1)
+		boidSet.Update(timeStep, &missile);
+		if (missile.isActive)
 		{
-			missile.rb->SetPosition(cameraNode_->GetPosition());
-			missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
-			swap = 0;
-		}
-		if (missile.missileTimer <= 0)
-		{
-			missile.isActive = false;
-			missile.model->SetEnabled(false);
-			missile.missileTimer = 10;
-			swap = 1;
+			missile.model->SetEnabled(true);
+			if (swap == 1)
+			{
+				missile.rb->SetPosition(cameraNode_->GetPosition());
+				missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
+				swap = 0;
+			}
+			if (missile.missileTimer <= 0)
+			{
+				missile.isActive = false;
+				missile.model->SetEnabled(false);
+				missile.missileTimer = 10;
+				swap = 1;
+			}
 		}
 	}
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 {
+	UI* ui = GetSubsystem<UI>();
 	Input* input = GetSubsystem<Input>();
 	ui->GetCursor()->SetVisible(isMenuVisible);
 	window->SetVisible(isMenuVisible);
@@ -236,8 +233,9 @@ void Main::HandleStartServer(StringHash eventType, VariantMap & eventData)
 	Network* network = GetSubsystem<Network>();
 	network->StartServer(SERVER_PORT);
 	isMenuVisible = !isMenuVisible;
+	isServer = true;
 }
-// THIS FUNCTION CAUSES THE RUNTIME ISSUE
+
 void Main::HandleConnect(StringHash eventType, VariantMap & eventData)
 {
 	CreateLocalScene();
@@ -250,6 +248,7 @@ void Main::HandleConnect(StringHash eventType, VariantMap & eventData)
 	}
 
 	network->Connect(address, SERVER_PORT, scene_);
+	isMenuVisible = !isMenuVisible;
 }
 
 void Main::HandleDisconnect(StringHash eventType, VariantMap & eventData)
@@ -274,8 +273,9 @@ void Main::HandleDisconnect(StringHash eventType, VariantMap & eventData)
 	}
 }
 
-void Main::HandleConnectedClient(StringHash eventType, VariantMap & eventData)
+void Main::HandleClientConnected(StringHash eventType, VariantMap & eventData)
 {
+	//CreateLocalScene();
 	Log::WriteRaw("*HANDLECONNECTEDCLIENT CALLED: A client has connected to the server");
 	using namespace ClientConnected;
 
@@ -404,8 +404,9 @@ Node* Main::CreateControllableObject()
 void Main::CreateGameMenu()
 {
 	InitMouseMode(MM_RELATIVE);
+
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
-	ui = GetSubsystem<UI>();
+	UI* ui = GetSubsystem<UI>();
 	UIElement* root = ui->GetRoot();
 	XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
 	root->SetDefaultStyle(style);
@@ -424,22 +425,24 @@ void Main::CreateGameMenu()
 	window->SetName("Window");
 	window->SetStyleAuto();
 
-	Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
-
-	connectButton = CreateButton(font, "Connect", 24, window);
-	startServerButton = CreateButton(font, "Start Server", 24, window);
-	clientStartGame = CreateButton(font, "Client: Start Game", 24, window);
-	quitButton = CreateButton(font, "Quit Game", 24, window);
+	connectButton = CreateButton("Connect", 24, window);
 	serverAddressEdit = CreateLineEdit("localhost", 12, window);
+	disconnectButton = CreateButton("Disconnect", 24, window);
+	startServerButton = CreateButton("Start Server", 24, window);
+	clientStartGame = CreateButton("Client: Start Game", 24, window);
+	quitButton = CreateButton("Quit Game", 24, window);
 
 	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
 	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, HandleStartServer));
 	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, HandleConnect));
+	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, HandleDisconnect));
 	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, HandleClientStartGame));
 }
 
-Button* Main::CreateButton(Font* font, const String& text, int pHeight, Urho3D::Window* whichWindow)
+Button* Main::CreateButton(const String& text, int pHeight, Urho3D::Window* whichWindow)
 {
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
 	Button* button = whichWindow->CreateChild<Button>();
 	button->SetMinHeight(pHeight);
 	button->SetStyleAuto();
@@ -488,7 +491,10 @@ void Boid::Init(ResourceCache* pRes, Scene* scene)
 	collider = node->CreateComponent<CollisionShape>();
 
 	model->SetModel(pRes->GetResource<Model>("Models/Cone.mdl"));
+	model->SetCastShadows(true);
+	collider->SetBox(Vector3::ONE);
 	rb->SetUseGravity(false);
+	rb->SetCollisionLayer(2);
 	rb->SetMass(5.0f);
 	node->SetPosition(Vector3(Random(180.0f) - 160.0f, 30.0f, Random(180.0f) - 160.0f));
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
@@ -498,7 +504,7 @@ Vector3 Boid::Attract(Boid* boid)
 {
 	Vector3 centerOfMass;
 	int neighbourCount = 0;
-	Vector3 attractForce = Vector3(0, 0, 0);
+	Vector3 attractForce;
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -527,7 +533,7 @@ Vector3 Boid::Align(Boid* boid)
 {
 	Vector3 direction;
 	int neighbourCount = 0;
-	Vector3 alignForce = Vector3(0, 0, 0);
+	Vector3 alignForce;
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -542,7 +548,6 @@ Vector3 Boid::Align(Boid* boid)
 			neighbourCount++;
 		}
 	}
-
 	if (neighbourCount > 0)
 	{
 		direction /= neighbourCount;
@@ -554,9 +559,8 @@ Vector3 Boid::Align(Boid* boid)
 
 Vector3 Boid::Repel(Boid* boid)
 {
-	Vector3 neighbourPos;
 	int neighbourCount = 0;
-	Vector3 repelForce = Vector3(0, 0, 0);
+	Vector3 repelForce;
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -569,12 +573,11 @@ Vector3 Boid::Repel(Boid* boid)
 		{
 			Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
 			//repelForce += (delta / delta * delta);
-			//repelForce = repelForce - (rb->GetPosition() - boid[i].rb->GetPosition()) * FRepel_Factor;
+				//repelForce = repelForce - (rb->GetPosition() - boid[i].rb->GetPosition()) * FRepel_Factor;
 			repelForce += (delta / delta.Length());
 			neighbourCount++;
 		}
 	}
-
 	if (neighbourCount > 0)
 	{
 		repelForce *= FRepel_Factor;
@@ -582,17 +585,10 @@ Vector3 Boid::Repel(Boid* boid)
 	return repelForce;
 }
 
-Vector3 Boid::Direction(Boid* boid)
-{
-	Vector3 desiredDirection = Vector3(0, 0, 0);
-
-	return desiredDirection;
-}
-
 Vector3 Boid::MissileDodge(Boid* boid, Missile* missile)
 {
 	int neighbourCount = 0;
-	Vector3 dodgeForce = Vector3(0, 0, 0);
+	Vector3 dodgeForce;
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -608,7 +604,6 @@ Vector3 Boid::MissileDodge(Boid* boid, Missile* missile)
 			neighbourCount++;
 		}
 	}
-
 	if (neighbourCount > 0)
 	{
 		dodgeForce *= FMissileRepel_Factor;
@@ -618,8 +613,7 @@ Vector3 Boid::MissileDodge(Boid* boid, Missile* missile)
 
 void Boid::ComputeForce(Boid* boid, Missile* missile)
 {
-	//force = Vector3(0, 0, 0);
-	force = Repel(boid) + Align(boid) + Attract(boid) + MissileDodge(boid, missile);
+	force = MissileDodge(boid, missile) + Repel(boid) + Align(boid) + Attract(boid);
 }
 
 void Boid::Update(float frameTime)
