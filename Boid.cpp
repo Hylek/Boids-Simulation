@@ -31,9 +31,9 @@ void Boid::Init(ResourceCache* cache, Scene* scene)
 
 	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
 	model->SetCastShadows(true);
-	//collider->SetBox(Vector3::ONE);
+	collider->SetBox(Vector3::ONE);
 	rb->SetUseGravity(false);
-	//rb->SetCollisionLayer(2);
+	rb->SetCollisionLayer(2);
 	rb->SetMass(5.0f);
 	node->SetPosition(Vector3(Random(180.0f) - 160.0f, 30.0f, Random(180.0f) - 160.0f));
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));

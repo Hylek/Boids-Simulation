@@ -109,20 +109,22 @@ void Main::CreateInitialScene()
 	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
 	terrain->SetPatchSize(64);
-	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f)); // Spacing between vertices and vertical resolution of the height map
+	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f));
 	terrain->SetSmoothing(true);
 	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
 	terrain->SetOccluder(true);
-	terrain->SetCastShadows(true);
+	RigidBody* body = terrainNode->CreateComponent<RigidBody>();
+	body->SetCollisionLayer(2);
 	CollisionShape* collider = terrainNode->CreateComponent<CollisionShape>();
-	collider->SetTerrain(1);
+	collider->SetTerrain();
 
 	// Creating the skybox
 	Node* skyNode = scene_->CreateChild("Sky", LOCAL);
 	Skybox* skybox = skyNode->CreateComponent<Skybox>();
 	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+
 }
 
 void Main::CreateLocalScene()
@@ -187,14 +189,15 @@ void Main::CreateLocalScene()
 	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
 	terrain->SetPatchSize(64);
-	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f)); // Spacing between vertices and vertical resolution of the height map
+	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f));
 	terrain->SetSmoothing(true);
 	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
 	terrain->SetOccluder(true);
-	terrain->SetCastShadows(true);
+	RigidBody* body = terrainNode->CreateComponent<RigidBody>();
+	body->SetCollisionLayer(2);
 	CollisionShape* collider = terrainNode->CreateComponent<CollisionShape>();
-	collider->SetTerrain(1);
+	collider->SetTerrain();
 
 	// Creating the skybox
 	Node* skyNode = scene_->CreateChild("Sky", LOCAL);
@@ -230,26 +233,26 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		// Make new camera orientation for the camera scene node, roll is 0
 		cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
 
-		//if (input->GetKeyDown(KEY_W))
-		//{
-		//	cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
-		//}
-		//if (input->GetKeyDown(KEY_S))
-		//{
-		//	cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
-		//}
-		//if (input->GetKeyDown(KEY_A))
-		//{
-		//	cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
-		//}
-		//if (input->GetKeyDown(KEY_D))
-		//{
-		//	cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
-		//}
-		//if (input->GetMouseButtonDown(MOUSEB_LEFT))
-		//{
-		//	missile.isActive = true;
-		//}
+		if (input->GetKeyDown(KEY_W))
+		{
+			cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
+		}
+		if (input->GetKeyDown(KEY_S))
+		{
+			cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
+		}
+		if (input->GetKeyDown(KEY_A))
+		{
+			cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
+		}
+		if (input->GetKeyDown(KEY_D))
+		{
+			cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
+		}
+		if (input->GetMouseButtonDown(MOUSEB_LEFT))
+		{
+			missile.isActive = true;
+		}
 	}
 	if (input->GetKeyPress(KEY_M))
 	{
@@ -267,24 +270,27 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		ignoreInputs = true;
 	}
-	if (missile.isActive)
+	if (hasGameStarted)
 	{
-		missile.model->SetEnabled(true);
-		if (swap == 1)
+		if (missile.isActive)
 		{
-			missile.rb->SetPosition(cameraNode_->GetPosition());
-			missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
-			swap = 0;
-		}
-		if (missile.missileTimer <= 0)
-		{
-			missile.isActive = false;
-			missile.model->SetEnabled(false);
-			missile.missileTimer = 10;
-			swap = 1;
+			missile.model->SetEnabled(true);
+			if (swap == 1)
+			{
+				missile.rb->SetPosition(cameraNode_->GetPosition());
+				missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
+				swap = 0;
+			}
+			if (missile.missileTimer <= 0)
+			{
+				missile.isActive = false;
+				missile.model->SetEnabled(false);
+				missile.missileTimer = 10;
+				swap = 1;
+			}
 		}
 	}
-	if (isServer && hasGameStarted)
+	if (isServer)
 	{
 		boidSet.Update(timeStep, &missile);
 	}

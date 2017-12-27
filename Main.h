@@ -34,11 +34,14 @@
 #include <Urho3D/Network/Connection.h>
 #include <Urho3D/Network/Network.h>
 #include <Urho3D/Network/NetworkEvents.h>
+#include <Urho3D/Urho2D/AnimatedSprite2D.h>
+#include <Urho3D/Urho2D/AnimationSet2D.h>
+#include <Urho3D/Urho2D/Sprite2D.h>
 
 #include "Sample.h"
 #include "Boid.h"
 #include "Missile.h"
-#include "Menu.h"
+#include "Particles.h"
 
 using namespace Urho3D;
 
@@ -63,6 +66,7 @@ private:
 	bool ignoreInputs = false;
 	BoidSet boidSet;
 	Missile missile;
+	Particles bubbles;
 
 	virtual void Start();
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);

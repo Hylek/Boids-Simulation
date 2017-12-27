@@ -1,6 +1,4 @@
 #pragma once
-#include <Urho3D/Engine/Application.h>
-#include <Urho3D/Input/Input.h>
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Core/ProcessUtils.h>
 #include <Urho3D/Engine/Engine.h>
@@ -40,13 +38,28 @@
 #include <Urho3D/Urho2D/AnimationSet2D.h>
 #include <Urho3D/Urho2D/Sprite2D.h>
 
-class Bubbles
+using namespace Urho3D;
+
+static const unsigned NUM_SPRITES = 200;
+static const StringHash VAR_MOVESPEED("MoveSpeed");
+static const StringHash VAR_ROTATESPEED("RotateSpeed");
+
+namespace Urho3D
+{
+	class Node;
+	class Scene;
+	class Window;
+}
+
+class Particles
 {
 public:
-	Bubbles();
-	~Bubbles();
-	
-	void Init(ResourceCache *cache, Scene* scene);
-private:
+	Particles();
+	~Particles();
 
+	void Init(ResourceCache* cache, Scene* scene, Graphics* graphics);
+	void Update(StringHash eventType, VariantMap& eventData, SharedPtr<Node> spriteNode);
+
+private:
+	Vector<SharedPtr<Node> > spriteNodes_;
 };
