@@ -64,6 +64,10 @@ void Particles::Update(float timeStep)
 			moveSpeed.x_ = -moveSpeed.x_;
 			node->SetVar(VAR_MOVESPEED, moveSpeed);
 		}
+		if (newPosition.y_ > 90.0f)
+		{
+			newPosition.y_ = Random(45.0f);
+		}
 		node->SetPosition(newPosition);
 	}
 }
