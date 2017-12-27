@@ -40,7 +40,7 @@
 
 using namespace Urho3D;
 
-static const unsigned NUM_SPRITES = 50;
+static const unsigned NUM_SPRITES = 25;
 static const StringHash VAR_MOVESPEED("MoveSpeed");
 static const StringHash VAR_ROTATESPEED("RotateSpeed");
 
@@ -58,6 +58,7 @@ public:
 	~Particles();
 
 	void Init(ResourceCache* cache, Scene* scene, Graphics* graphics);
+	void InitGroup(ResourceCache* cache, Scene* scene, Graphics* graphics, int number);
 	void Update(float timeStep);
 
 private:

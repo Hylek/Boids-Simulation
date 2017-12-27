@@ -18,9 +18,10 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics)
 
 	for (unsigned i = 0; i < NUM_SPRITES; ++i)
 	{
-		SharedPtr<Node> spriteNode(scene->CreateChild("StaticSprite2D", LOCAL));
-		spriteNode->SetPosition(Vector3(Random(1.0f), Random(10.0f), 0.0f));
-		spriteNode->SetScale(Vector3(0.2f, 0.2f, 0.2f));
+		float scaleAmount = Random(0.2f);
+		SharedPtr<Node> spriteNode(scene->CreateChild("Bubble", LOCAL));
+		spriteNode->SetPosition(Vector3(Random(1.0f), Random(45.0f), 0.0f));
+		spriteNode->SetScale(Vector3(scaleAmount, scaleAmount, scaleAmount));
 
 		StaticSprite2D* staticSprite = spriteNode->CreateComponent<StaticSprite2D>();
 
@@ -36,9 +37,15 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics)
 		spriteNodes_.Push(spriteNode);
 
 		// Set move speed
-		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(-2.0f, 2.0f), 0.0f));
-		// Set rotate speed
-		spriteNode->SetVar(VAR_ROTATESPEED, Random(-90.0f, 90.0f));
+		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(2.0f, 2.0f), 0.0f));
+	}
+}
+
+void Particles::InitGroup(ResourceCache * cache, Scene * scene, Graphics * graphics, int number)
+{
+	for (int i = 0; i < number; i++)
+	{
+		Init(cache, scene, graphics);
 	}
 }
 

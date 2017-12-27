@@ -39,7 +39,7 @@
 
 using namespace Urho3D;
 
-const static short int NUM_BOIDS = 100;
+const short int NUM_BOIDS = 100;
 
 namespace Urho3D
 {
@@ -70,7 +70,6 @@ public:
 	Vector3 Align(Boid* boid);
 	Vector3 Repel(Boid* boid);
 	Vector3 MissileDodge(Boid* boid, Missile* missile);
-	Vector3 Direction(Boid* boid);
 	void Update(float lastFrame);
 
 	Vector3 force;
