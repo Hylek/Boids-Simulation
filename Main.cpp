@@ -50,6 +50,7 @@ void Main::SubscribeToEvents()
 void Main::CreateInitialScene()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Graphics* graphics = GetSubsystem<Graphics>();
 
 	scene_ = new Scene(context_);
 	scene_->CreateComponent<Octree>(LOCAL);
@@ -125,6 +126,7 @@ void Main::CreateInitialScene()
 	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
+	bubbles.Init(cache, scene_, graphics);
 }
 
 void Main::CreateLocalScene()
@@ -294,6 +296,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		boidSet.Update(timeStep, &missile);
 	}
+	bubbles.Update(timeStep);
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)

@@ -10,7 +10,7 @@ Particles::~Particles()
 
 }
 
-void Particles::Init(ResourceCache * cache, Scene * scene, Graphics* graphics)
+void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics)
 {
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/bubble.png");
 
@@ -19,7 +19,7 @@ void Particles::Init(ResourceCache * cache, Scene * scene, Graphics* graphics)
 	for (unsigned i = 0; i < NUM_SPRITES; ++i)
 	{
 		SharedPtr<Node> spriteNode(scene->CreateChild("StaticSprite2D", LOCAL));
-		spriteNode->SetPosition(Vector3(Random(10.0f), Random(10.0f), 0.0f));
+		spriteNode->SetPosition(Vector3(Random(1.0f), Random(10.0f), 0.0f));
 		spriteNode->SetScale(Vector3(0.2f, 0.2f, 0.2f));
 
 		StaticSprite2D* staticSprite = spriteNode->CreateComponent<StaticSprite2D>();
@@ -34,13 +34,30 @@ void Particles::Init(ResourceCache * cache, Scene * scene, Graphics* graphics)
 
 		// Add to sprite node vector
 		spriteNodes_.Push(spriteNode);
+
+		// Set move speed
+		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(-2.0f, 2.0f), 0.0f));
+		// Set rotate speed
+		spriteNode->SetVar(VAR_ROTATESPEED, Random(-90.0f, 90.0f));
 	}
 }
 
-void Particles::Update(StringHash eventType, VariantMap & eventData, SharedPtr<Node> spriteNode)
+void Particles::Update(float timeStep)
 {
-	// Set move speed
-	spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(-2.0f, 2.0f), 0.0f));
-	// Set rotate speed
-	spriteNode->SetVar(VAR_ROTATESPEED, Random(-90.0f, 90.0f));
+	for (unsigned i = 0; i < spriteNodes_.Size(); ++i)
+	{
+		SharedPtr<Node> node = spriteNodes_[i];
+
+		Vector3 position = node->GetPosition();
+		Vector3 moveSpeed = node->GetVar(VAR_MOVESPEED).GetVector3();
+		Vector3 newPosition = position + moveSpeed * timeStep;
+		if (newPosition.x_ < 0.0f || newPosition.x_ > 4.0f)
+		{
+			newPosition.x_ = position.x_;
+			moveSpeed.x_ = -moveSpeed.x_;
+			node->SetVar(VAR_MOVESPEED, moveSpeed);
+		}
+		node->SetPosition(newPosition);
+	}
 }
+
