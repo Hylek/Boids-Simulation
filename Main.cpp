@@ -5,6 +5,8 @@ URHO3D_DEFINE_APPLICATION_MAIN(Main)
 static const StringHash E_CLIENTOBJECTAUTHORITY("ClientObjectAuthority");
 static const StringHash PLAYER_ID("IDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
+static const StringHash E_SPAWNPLAYER("SpawnPlayer");
+static const StringHash E_FIREMISSILE("FireMissile");
 
 float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
@@ -115,7 +117,7 @@ void Main::CreateLocalScene()
 	terrain->SetOccluder(true);
 	terrain->SetCastShadows(true);
 	CollisionShape* collider = terrainNode->CreateComponent<CollisionShape>();
-	collider->SetTerrain(0);
+	collider->SetTerrain(1);
 
 	// Creating the skybox
 	Node* skyNode = scene_->CreateChild("Sky", LOCAL);
@@ -133,8 +135,10 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, HandleClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, HandleClientToServerReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, HandleServerToClientObjectID));
+	SubscribeToEvent(E_FIREMISSILE, URHO3D_HANDLER(Main, HandleFireMissile));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_FIREMISSILE);
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -159,26 +163,26 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		// Make new camera orientation for the camera scene node, roll is 0
 		cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
 
-		if (input->GetKeyDown(KEY_W))
-		{
-			cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
-		}
-		if (input->GetKeyDown(KEY_S))
-		{
-			cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
-		}
-		if (input->GetKeyDown(KEY_A))
-		{
-			cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
-		}
-		if (input->GetKeyDown(KEY_D))
-		{
-			cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
-		}
-		if (input->GetMouseButtonDown(MOUSEB_LEFT))
-		{
-			missile.isActive = true;
-		}
+	//	if (input->GetKeyDown(KEY_W))
+	//	{
+	//		cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
+	//	}
+	//	if (input->GetKeyDown(KEY_S))
+	//	{
+	//		cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
+	//	}
+	//	if (input->GetKeyDown(KEY_A))
+	//	{
+	//		cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
+	//	}
+	//	if (input->GetKeyDown(KEY_D))
+	//	{
+	//		cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
+	//	}
+	//	if (input->GetMouseButtonDown(MOUSEB_LEFT))
+	//	{
+	//		missile.isActive = true;
+	//	}
 	}
 	if (input->GetKeyPress(KEY_M))
 	{
@@ -217,6 +221,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 			}
 		}
 	}
+
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
@@ -307,10 +312,10 @@ void Main::HandlePhysicsPreStep(StringHash eventType, VariantMap & eventData)
 
 void Main::HandleClientFinishedLoading(StringHash eventType, VariantMap & eventData)
 {
-
+	Log::WriteRaw("Client has completed loading!");
 }
 
-void Main::HandleClientStartGame(StringHash eventType, VariantMap & eventData)
+void Main::HandleClientStartGame(StringHash eventType, VariantMap & eventData) // Called after pressing client button
 {
 	Log::WriteRaw("*HANDLECLIENTSTARTGAME CALLED: Client has pressed START GAME \n");
 	if (clientObjectID == 0)
@@ -322,6 +327,7 @@ void Main::HandleClientStartGame(StringHash eventType, VariantMap & eventData)
 			VariantMap remoteEventData;
 			remoteEventData[PLAYER_ID] = 0;
 			serverConnection->SendRemoteEvent(E_CLIENTISREADY, true, remoteEventData);
+			isMenuVisible = !isMenuVisible;
 		}
 	}
 }
@@ -347,24 +353,50 @@ void Main::HandleServerToClientObjectID(StringHash eventType, VariantMap & event
 	Log::WriteRaw("Client ID : %i \n", clientObjectID);
 }
 
-void Main::ProcessClientControls()
+void Main::HandleSpawnPlayer(StringHash eventType, VariantMap & eventData)
+{
+	Log::WriteRaw("Spawn Player Event Called!");
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Node* player = scene_->CreateChild("Player");
+	StaticModel* model = player->CreateComponent<StaticModel>();
+	RigidBody* rb = player->CreateComponent<RigidBody>();
+	CollisionShape* shape = player->CreateComponent<CollisionShape>();
+	model->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+	model->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+	shape->SetBox(Vector3::ONE);
+	rb->SetUseGravity(false);
+	rb->SetCollisionLayer(2);
+}
+
+void Main::HandleFireMissile(StringHash eventType, VariantMap & eventData)
+{
+	Log::WriteRaw("Client wants to fire missile!");
+}
+
+void Main::ProcessClientControls() // Server Controls this function
 {
 	Network* network = GetSubsystem<Network>();
 	const Vector<SharedPtr<Connection> >& connections = network->GetClientConnections();
-	//go through every client connected
+	// Go through every client connected
 	for (unsigned i = 0; i < connections.Size(); ++i)
 	{
 		Connection* connection = connections[i];
+		Node* playerNode = serverObjects[connection];
+
+		if (!playerNode) continue;
+
 		const Controls& controls = connection->GetControls();
-		if (controls.buttons_ & CTRL_FORWARD)  Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)     Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	   Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)    Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-		if (controls.buttons_ & CTRL_ACTION)   Log::WriteRaw("Received from client: E pressed \n");
+
+		if (controls.buttons_ & CTRL_FORWARD)  playerNode->Translate(Vector3::FORWARD); Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)     playerNode->Translate(Vector3::BACK);    Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	   playerNode->Translate(Vector3::LEFT);    Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)    playerNode->Translate(Vector3::RIGHT);   Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_ACTION)   Log::WriteRaw("Received from Client: Controls buttons E-ACTION \n");
+		if (controls.buttons_ & CTRL_FIRE)	   Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
 	}
 }
 
-Controls Main::ClientToServerControls()
+Controls Main::ClientToServerControls() // Function used by client
 {
 	Input* input = GetSubsystem<Input>();
 	Controls controls;
@@ -374,17 +406,18 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
 	controls.Set(CTRL_ACTION, input->GetKeyDown(KEY_E));
+	controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 
 	controls.yaw_ = yaw_;
 	return controls;
 }
 
-Node* Main::CreateControllableObject()
+Node* Main::CreateControllableObject() // Called by server as a response of an event sent by the client when pressing the start game button
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* ballNode = scene_->CreateChild("ClientBall");
-	ballNode->SetPosition(Vector3(0.0f, 5.0f, 0.0f));
+	ballNode->SetPosition(cameraNode_->GetPosition()); // This needs to be updated as well
 	ballNode->SetScale(2.5f);
 	StaticModel* ballObject = ballNode->CreateComponent<StaticModel>();
 	ballObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
@@ -392,9 +425,7 @@ Node* Main::CreateControllableObject()
 
 	RigidBody* body = ballNode->CreateComponent<RigidBody>();
 	body->SetMass(1.0f);
-	body->SetFriction(1.0f);
-	body->SetLinearDamping(0.25f);
-	body->SetAngularDamping(0.25f);
+	body->SetUseGravity(false);
 	CollisionShape* shape = ballNode->CreateComponent<CollisionShape>();
 	shape->SetSphere(1.0f);
 
@@ -500,11 +531,29 @@ void Boid::Init(ResourceCache* pRes, Scene* scene)
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
+void Boid::InitShark(ResourceCache * cache, Scene * scene)
+{
+	node = scene->CreateChild("Shark");
+	node->SetScale(Vector3(5.0f, 5.0f, 5.0f));
+	rb = node->CreateComponent<RigidBody>();
+	model = node->CreateComponent<StaticModel>();
+	collider = node->CreateComponent<CollisionShape>();
+
+	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
+	model->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+	model->SetCastShadows(true);
+	collider->SetBox(Vector3::ONE);
+	rb->SetUseGravity(false);
+	rb->SetCollisionLayer(2);
+	rb->SetMass(15.0f);
+	node->SetPosition(Vector3(Random(180.0f) - 160.0f, 30.0f, Random(180.0f) - 160.0f));
+}
+
 Vector3 Boid::Attract(Boid* boid)
 {
 	Vector3 centerOfMass;
-	int neighbourCount = 0;
-	Vector3 attractForce;
+	float neighbourCount = 0;
+	Vector3 attractForce = Vector3(0, 0, 0);
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -532,8 +581,8 @@ Vector3 Boid::Attract(Boid* boid)
 Vector3 Boid::Align(Boid* boid)
 {
 	Vector3 direction;
-	int neighbourCount = 0;
-	Vector3 alignForce;
+	float neighbourCount = 0;
+	Vector3 alignForce = Vector3(0, 0, 0);
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -560,7 +609,7 @@ Vector3 Boid::Align(Boid* boid)
 Vector3 Boid::Repel(Boid* boid)
 {
 	int neighbourCount = 0;
-	Vector3 repelForce;
+	Vector3 repelForce = Vector3(0, 0, 0);
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
@@ -613,7 +662,7 @@ Vector3 Boid::MissileDodge(Boid* boid, Missile* missile)
 
 void Boid::ComputeForce(Boid* boid, Missile* missile)
 {
-	force = MissileDodge(boid, missile) + Repel(boid) + Align(boid) + Attract(boid);
+	force = Repel(boid) + Align(boid) + Attract(boid) + MissileDodge(boid, missile);
 }
 
 void Boid::Update(float frameTime)
@@ -644,9 +693,9 @@ void Boid::Update(float frameTime)
 		p.y_ = 10.0f;
 		rb->SetPosition(p);
 	}
-	else if (p.y_ > 50.0f)
+	else if (p.y_ > 90.0f)
 	{
-		p.y_ = 50.0f;
+		p.y_ = 90.0f;
 		rb->SetPosition(p);
 	}
 	/* if (p.x_ < 10.0f)
@@ -671,7 +720,7 @@ void Boid::Update(float frameTime)
 	} */
 }
 
-BoidSet::BoidSet() //: Object(context_)
+BoidSet::BoidSet()
 {
 	
 }

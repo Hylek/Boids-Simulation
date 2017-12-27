@@ -86,6 +86,7 @@ public:
 	~Boid();
 
 	void Init(ResourceCache* cache, Scene* scene);
+	void InitShark(ResourceCache* cache, Scene* scene);
 	void ComputeForce(Boid* boid, Missile* missile);
 	Vector3 Attract(Boid* boid);
 	Vector3 Align(Boid* boid);
@@ -150,10 +151,11 @@ private:
 	bool ignoreInputs = false; 
 	unsigned clientObjectID = 0;
 
-	int CTRL_FORWARD = 1;
-	int CTRL_BACK = 2;
-	int CTRL_LEFT = 3;
-	int CTRL_RIGHT = 4;
+	int CTRL_FORWARD = 3;
+	int CTRL_BACK = 6;
+	int CTRL_LEFT = 9;
+	int CTRL_RIGHT = 12;
+	int CTRL_FIRE = 2046;
 	int CTRL_ACTION = 1024;
 
 	SharedPtr<Window> window;
@@ -186,6 +188,8 @@ private:
 	void HandleClientStartGame(StringHash eventType, VariantMap& eventData);
 	void HandleClientToServerReadyToStart(StringHash eventType, VariantMap& eventData);
 	void HandleServerToClientObjectID(StringHash eventType, VariantMap& eventData);
+	void HandleSpawnPlayer(StringHash eventType, VariantMap& eventData);
+	void HandleFireMissile(StringHash eventType, VariantMap& eventData);
 	void ProcessClientControls();
 	Controls ClientToServerControls();
 	Node* CreateControllableObject();
