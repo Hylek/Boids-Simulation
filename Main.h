@@ -35,12 +35,12 @@
 #include <Urho3D/Network/Network.h>
 #include <Urho3D/Network/NetworkEvents.h>
 
-
 #include "Sample.h"
+#include "Boid.h"
+#include "Missile.h"
+#include "Menu.h"
 
 using namespace Urho3D;
-
-const static short int NUM_BOIDS = 100;
 
 namespace Urho3D
 {
@@ -49,117 +49,29 @@ namespace Urho3D
 	class Window;
 }
 
-class Missile
-{
-
-public:
-	Missile();
-	~Missile();
-
-	Node* CreateMissile(ResourceCache* cache, Scene* scene);
-
-
-	Node* node;
-	RigidBody* rb;
-	CollisionShape* collider;
-	StaticModel* model;
-	bool isActive = false;
-	float missileTimer;
-
-};
-
-class Boid
-{
-	static float Range_FAttract;
-	static float Range_FRepel;
-	static float Range_FAlign;
-	static float Range_FMissileRepel;
-	static float FAttract_Factor;
-	static float FRepel_Factor;
-	static float FMissileRepel_Factor;
-	static float FAlign_Factor;
-	static float FAttract_Vmax;
-
-public:
-
-	Boid();
-	~Boid();
-
-	void Init(ResourceCache* cache, Scene* scene);
-	void InitShark(ResourceCache* cache, Scene* scene);
-	void ComputeForce(Boid* boid, Missile* missile);
-	Vector3 Attract(Boid* boid);
-	Vector3 Align(Boid* boid);
-	Vector3 Repel(Boid* boid);
-	Vector3 MissileDodge(Boid* boid, Missile* missile);
-	Vector3 Direction(Boid* boid);
-	void Update(float lastFrame);
-
-	Vector3 force;
-	Node* node;
-	RigidBody* rb;
-	CollisionShape* collider;
-	StaticModel* model;
-};
-
-class BoidSet
-{
-
-public:
-	BoidSet();
-	~BoidSet();
-
-	Boid boidList[NUM_BOIDS];
-
-	void Init(ResourceCache *pRes, Scene* scene);
-	void Update(float tm, Missile* missile);
-};
-
-class Bubbles
-{
-public:
-	Bubbles();
-	~Bubbles();
-};
-
 class Main : public Sample
 {
-    URHO3D_OBJECT(Main, Sample);
-	
+	URHO3D_OBJECT(Main, Sample);
 public:
-
-    Main(Context* context);
-    ~Main();
-
-	virtual void Start();
-
-	static const unsigned short SERVER_PORT = 2345;
-
+	Main(Context* context);
+	~Main();
+private:
+	unsigned short int swap = 1;
+	bool isServer = false;
+	bool hasGameStarted = false;
+	bool isMenuVisible = false;
+	bool ignoreInputs = false;
 	BoidSet boidSet;
 	Missile missile;
 
-	int spatialGrid[50][50];
-	bool isServer;
+	virtual void Start();
+	void HandleUpdate(StringHash eventType, VariantMap& eventData);
+	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
+	void CreateInitialScene();
+	void CreateLocalScene();
+	void SubscribeToEvents();
 
-protected:
-
-
-private:
-	unsigned short int swap = 1;
-	bool firstPerson;
-	bool isMenuVisible = false;
-	bool ignoreInputs = false; 
-	unsigned clientObjectID = 0;
-
-	int CTRL_FORWARD = 3;
-	int CTRL_BACK = 6;
-	int CTRL_LEFT = 9;
-	int CTRL_RIGHT = 12;
-	int CTRL_FIRE = 2046;
-	int CTRL_ACTION = 1024;
-
-	SharedPtr<Window> window;
-	HashMap<Connection*, WeakPtr<Node> > serverObjects;
+	// Menu code START
 	Button* connectButton;
 	Button* disconnectButton;
 	Button* quitButton;
@@ -167,30 +79,40 @@ private:
 	Button* clientStartGame;
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
+	SharedPtr<Window> window;
 
-	void CreateMenuScene();
-	void CreateLocalScene();
-	void SubscribeToEvents();
-	void CreateGameMenu();
-	void CreateSpatialGrid();
-	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow);
-	Button* CreateButton(const String& text, int pHeight, Urho3D::Window* whichWindow);
+	void CreateGameMenu(ResourceCache* cache, Context* context, UI* ui);
 	void HandleQuit(StringHash eventType, VariantMap& eventData);
-	void HandleUpdate(StringHash eventType, VariantMap& eventData);
-	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
-	void HandleStartServer(StringHash eventType, VariantMap& eventData);
-	void HandleConnect(StringHash eventType, VariantMap& eventData);
-	void HandleDisconnect(StringHash eventType, VariantMap& eventData);
-	void HandleClientConnected(StringHash eventType, VariantMap& eventData);
-	void HandleClientDisconnecting(StringHash eventType, VariantMap& eventData);
-	void HandlePhysicsPreStep(StringHash eventType, VariantMap& eventData);
-	void HandleClientFinishedLoading(StringHash eventType, VariantMap& eventData);
-	void HandleClientStartGame(StringHash eventType, VariantMap& eventData);
-	void HandleClientToServerReadyToStart(StringHash eventType, VariantMap& eventData);
-	void HandleServerToClientObjectID(StringHash eventType, VariantMap& eventData);
-	void HandleSpawnPlayer(StringHash eventType, VariantMap& eventData);
-	void HandleFireMissile(StringHash eventType, VariantMap& eventData);
+	Button* CreateButton(const String& text, int pHeight, Urho3D::Window* whichWindow, ResourceCache* cache);
+	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow, ResourceCache* cache);
+	// Menu code END
+
+	// Server code START
+	static const unsigned short SERVER_PORT = 2345;
+	HashMap<Connection*, WeakPtr<Node> > serverObjects; // Variable to keep track of client controlled server objects.
+	unsigned clientObjectID = 0; // ID of client objects present on the server
+	void StartServer(StringHash eventType, VariantMap& eventData);
+	void Connect(StringHash eventType, VariantMap& eventData);
+	void Disconnect(StringHash eventType, VariantMap& eventData);
+	void ClientConnected(StringHash eventType, VariantMap & eventData);
+	void ClientDisconnecting(StringHash eventType, VariantMap & eventData);
+	void ClientStartGame(StringHash eventType, VariantMap& eventData);
+	void ServerStartGame(StringHash eventType, VariantMap& eventData);
+	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
+	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
+	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
+	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
+	Node* CreatePlayer();
+	void MoveCamera();
+
+	// Control processing
+	int CTRL_FORWARD = 3;
+	int CTRL_BACK = 6;
+	int CTRL_LEFT = 9;
+	int CTRL_RIGHT = 12;
+	int CTRL_FIRE = 2046;
+	int CTRL_ACTION = 1024;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
-	Node* CreateControllableObject();
+
 };
