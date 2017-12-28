@@ -41,10 +41,10 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, ClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, ClientReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
-	SubscribeToEvent(E_STARTGAME, URHO3D_HANDLER(Main, ServerStartGame));
+	SubscribeToEvent(E_FIREMISSILE, URHO3D_HANDLER(Main, ClientRequestFireMissile));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
-	GetSubsystem<Network>()->RegisterRemoteEvent(E_STARTGAME);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_FIREMISSILE);
 }
 
 void Main::CreateInitialScene()
@@ -531,6 +531,22 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
 }
 
+// The client has requested to fire a missile, create a missile object and fire it.
+void Main::ClientRequestFireMissile(StringHash eventType, VariantMap & eventData)
+{
+	Log::WriteRaw("Event sent by the Client and running on Server: Client wants to fire a missile.");
+
+	using namespace ClientConnected;
+	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
+
+	Node* newObject = CreateMissile();
+	serverObjects[newConnection] = newObject;
+
+	VariantMap remoteEventData;
+	remoteEventData[PLAYER_ID] = newObject->GetID();
+	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
+}
+
 // Create client controlled object on the server // CLIENT FUNCTION
 Node* Main::CreatePlayer()
 {
@@ -552,6 +568,26 @@ Node* Main::CreatePlayer()
 	return playerNode;
 }
 
+// Create the missile object.
+Node* Main::CreateMissile()
+{
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+
+	Node* playerNode = this->scene_->GetNode(clientObjectID);
+	Node* node = scene_->CreateChild("Missile");
+	node->SetPosition(playerNode->GetPosition());
+	RigidBody* rb = node->CreateComponent<RigidBody>();
+	StaticModel* model = node->CreateComponent<StaticModel>();
+	CollisionShape* collider = node->CreateComponent<CollisionShape>();
+
+	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
+	model->SetEnabled(false);
+	rb->SetUseGravity(false);
+	rb->SetMass(5.0f);
+
+	return node;
+}
+
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
 void Main::MoveCamera()
 {
@@ -561,7 +597,7 @@ void Main::MoveCamera()
 		Node* playerNode = this->scene_->GetNode(clientObjectID);
 		if (playerNode)
 		{
-			const float CAMERA_DISTANCE = 5.0f;
+			const float CAMERA_DISTANCE = 10.0f;
 			cameraNode_->SetPosition(playerNode->GetPosition() + cameraNode_->GetRotation() * Vector3::BACK * CAMERA_DISTANCE);
 		}
 	}
@@ -590,12 +626,11 @@ void Main::ProcessClientControls()
 
 		const Controls& controls = connection->GetControls();
 
-		if (controls.buttons_ & CTRL_FORWARD)Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)   Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	 Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)  Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-		//if (controls.buttons_ & CTRL_ACTION)   Log::WriteRaw("Received from Client: Controls buttons E-ACTION \n");
-		//if (controls.buttons_ & CTRL_FIRE)	   Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
+		if (controls.buttons_ & CTRL_FORWARD) playerNode->Translate(Vector3::FORWARD * 1.0f); Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)    playerNode->Translate(Vector3::BACK * 1.0f);    Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	  playerNode->Translate(Vector3::LEFT * 1.0f);    Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)   playerNode->Translate(Vector3::RIGHT * 1.0f);   Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_FIRE)	  Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
 	}
 }
 
@@ -609,6 +644,7 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
+	controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 	//controls.Set(CTRL_ACTION, input->GetKeyDown(KEY_E));
 	//controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 

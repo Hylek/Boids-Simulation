@@ -105,8 +105,10 @@ private:
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
+	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
 	Node* CreatePlayer();
+	Node* CreateMissile();
 	void MoveCamera();
 
 	// Control processing
@@ -114,8 +116,7 @@ private:
 	int CTRL_BACK = 2;
 	int CTRL_LEFT = 4;
 	int CTRL_RIGHT = 8;
-	int CTRL_FIRE = 2046;
-	int CTRL_ACTION = 1024;
+	int CTRL_FIRE = 1024;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
 
