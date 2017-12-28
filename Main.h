@@ -110,10 +110,10 @@ private:
 	void MoveCamera();
 
 	// Control processing
-	int CTRL_FORWARD = 3;
-	int CTRL_BACK = 6;
-	int CTRL_LEFT = 9;
-	int CTRL_RIGHT = 12;
+	int CTRL_FORWARD = 1;
+	int CTRL_BACK = 2;
+	int CTRL_LEFT = 4;
+	int CTRL_RIGHT = 8;
 	int CTRL_FIRE = 2046;
 	int CTRL_ACTION = 1024;
 	void ProcessClientControls();

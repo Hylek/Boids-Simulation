@@ -60,6 +60,10 @@ void Main::CreateInitialScene()
 	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
 	cameraNode_->SetPosition(Vector3(30.0f, 40.0f, 0.0f));
 	cam->SetFarClip(1000.0f);
+	//CollisionShape* camCollider_ = cameraNode_->CreateComponent<CollisionShape>();
+	//RigidBody* cameraRB = cameraNode_->CreateComponent<RigidBody>();
+	//camCollider_->SetBox(Vector3::ONE);
+	//cameraRB->SetCollisionLayer(2);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
 
@@ -83,18 +87,18 @@ void Main::CreateInitialScene()
 	light->SetSpecularIntensity(0.5f);
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
-	//// Creating a box
-	//Node* boxNode = scene_->CreateChild("Box", LOCAL);
-	//boxNode->SetPosition(Vector3(0.0f, 10.0f, 50.0f));
-	//boxNode->SetScale(Vector3(10.0f, 10.0f, 10.0f));
-	//StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
-	//boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	//boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-	//boxObject->SetCastShadows(true);
-	//RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
-	//boxRB->SetCollisionLayer(2);
-	//CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
-	//boxCol->SetBox(Vector3::ONE);
+	// Creating a box
+	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
+	boxNode->SetPosition(Vector3(0.0f, 50.0f, 50.0f));
+	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
+	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
+	boxObject->SetModel(cache->GetResource<Model>("Models/TreasureChestShut.mdl"));
+	boxObject->SetMaterial(cache->GetResource<Material>("Materials/TreasureChest.xml"));
+	boxObject->SetCastShadows(true);
+	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
+	boxRB->SetCollisionLayer(2);
+	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
+	boxCol->SetBox(Vector3::ONE);
 
 	// Creating the ocean water
 	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
@@ -312,6 +316,7 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 	Input* input = GetSubsystem<Input>();
 	ui->GetCursor()->SetVisible(isMenuVisible);
 	window->SetVisible(isMenuVisible);
+	MoveCamera();
 }
 
 //
@@ -421,7 +426,6 @@ void Main::Connect(StringHash eventType, VariantMap& eventData)
 // When a client has connected, refresh the scene and create a new connection. // SERVER FUNCTION
 void Main::ClientConnected(StringHash eventType, VariantMap & eventData)
 {
-	CreateLocalScene();
 	Log::WriteRaw("*HANDLECONNECTEDCLIENT CALLED: A client has connected to the server");
 	using namespace ClientConnected;
 
@@ -525,7 +529,6 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 	VariantMap remoteEventData;
 	remoteEventData[PLAYER_ID] = newObject->GetID();
 	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
-	newConnection->SendRemoteEvent(E_STARTGAME, true, remoteEventData);
 }
 
 // Create client controlled object on the server // CLIENT FUNCTION
@@ -534,6 +537,7 @@ Node* Main::CreatePlayer()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* playerNode = scene_->CreateChild("ClientBall");
+	playerNode->SetPosition(cameraNode_->GetPosition());
 	playerNode->SetScale(2.5f);
 	StaticModel* ballObject = playerNode->CreateComponent<StaticModel>();
 	ballObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
@@ -586,10 +590,10 @@ void Main::ProcessClientControls()
 
 		const Controls& controls = connection->GetControls();
 
-		if (controls.buttons_ & 10)  Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & 20)  Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & 32)	 Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & 40)  Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_FORWARD)Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)   Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	 Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)  Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		//if (controls.buttons_ & CTRL_ACTION)   Log::WriteRaw("Received from Client: Controls buttons E-ACTION \n");
 		//if (controls.buttons_ & CTRL_FIRE)	   Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
 	}
@@ -601,10 +605,10 @@ Controls Main::ClientToServerControls()
 	Input* input = GetSubsystem<Input>();
 	Controls controls;
 
-	controls.Set(10, input->GetKeyDown(KEY_W));
-	controls.Set(20, input->GetKeyDown(KEY_S));
-	controls.Set(32, input->GetKeyDown(KEY_A));
-	controls.Set(40, input->GetKeyDown(KEY_D));
+	controls.Set(CTRL_FORWARD, input->GetKeyDown(KEY_W));
+	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
+	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
+	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
 	//controls.Set(CTRL_ACTION, input->GetKeyDown(KEY_E));
 	//controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 
