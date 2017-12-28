@@ -308,9 +308,6 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		boidSet.Update(timeStep, &missile);
 	}
 	bubbles.Update(timeStep);
-
-	clientYaw += (float)input->GetMouseMoveX() * 0.1f;
-	clientPitch += (float)input->GetMouseMoveY() * 0.1f;
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
@@ -628,12 +625,10 @@ void Main::ProcessClientControls()
 		clientDirection = Vector3(0, 0, rotation.x_);
 
 		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);      Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);     Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);      Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		if (controls.buttons_ & CTRL_FIRE)	  Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
-		//if (controls.buttons_ & 2046)		  playerNode->SetRotation(Quaternion(clientYaw));
-		//if (controls.buttons_ & 2048)		  playerNode->SetRotation(Quaternion(clientPitch));
 	}
 }
 
@@ -648,8 +643,6 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
 	controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
-	//controls.Set(2046, input->GetMouseMoveX());
-	//controls.Set(2048, input->GetMouseMoveY());
 
 	controls.yaw_ = yaw_;
 	return controls;
