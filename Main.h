@@ -93,6 +93,7 @@ private:
 
 	// Server code START
 	static const unsigned short SERVER_PORT = 2345;
+	float moveLeft = 1.0f;
 	HashMap<Connection*, WeakPtr<Node> > serverObjects; // Variable to keep track of client controlled server objects.
 	unsigned clientObjectID = 0; // ID of client objects present on the server
 	void StartServer(StringHash eventType, VariantMap& eventData);
@@ -117,6 +118,9 @@ private:
 	int CTRL_LEFT = 4;
 	int CTRL_RIGHT = 8;
 	int CTRL_FIRE = 1024;
+	Vector3 clientDirection;
+	float clientYaw = 0;
+	float clientPitch = 0;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
 

@@ -35,7 +35,7 @@ void Boid::Init(ResourceCache* cache, Scene* scene)
 	rb->SetUseGravity(false);
 	rb->SetCollisionLayer(2);
 	rb->SetMass(5.0f);
-	node->SetPosition(Vector3(Random(180.0f) - 160.0f, 30.0f, Random(180.0f) - 160.0f));
+	node->SetPosition(Vector3(Random(20.0f) - 40.0f, 30.0f, Random(20.0f) - 40.0f));
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
