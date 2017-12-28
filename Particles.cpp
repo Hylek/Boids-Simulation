@@ -10,7 +10,7 @@ Particles::~Particles()
 
 }
 
-void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics)
+void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
 {
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/bubble.png");
 
@@ -20,7 +20,7 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics)
 	{
 		float scaleAmount = Random(0.2f);
 		SharedPtr<Node> spriteNode(scene->CreateChild("Bubble", LOCAL));
-		spriteNode->SetPosition(Vector3(Random(1.0f), Random(45.0f), 0.0f));
+		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(-30.0f), zPos));
 		spriteNode->SetScale(Vector3(scaleAmount, scaleAmount, scaleAmount));
 
 		StaticSprite2D* staticSprite = spriteNode->CreateComponent<StaticSprite2D>();
@@ -45,7 +45,7 @@ void Particles::InitGroup(ResourceCache * cache, Scene * scene, Graphics * graph
 {
 	for (int i = 0; i < number; i++)
 	{
-		Init(cache, scene, graphics);
+		//Init(cache, scene, graphics);
 	}
 }
 

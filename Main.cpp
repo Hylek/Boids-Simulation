@@ -126,12 +126,15 @@ void Main::CreateInitialScene()
 	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
-	bubbles.Init(cache, scene_, graphics);
+	// Create bubble streams
+	bubbles.Init(cache, scene_, graphics, 1.0f, 5.0f);
+	bubbles.Init(cache, scene_, graphics, 20.0f, 40.0f);
 }
 
 void Main::CreateLocalScene()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Graphics* graphics = GetSubsystem<Graphics>();
 
 	scene_ = new Scene(context_);
 	scene_->CreateComponent<Octree>(LOCAL);
@@ -210,6 +213,10 @@ void Main::CreateLocalScene()
 	// Create objects
 	boidSet.Init(cache, scene_);
 	missile.CreateMissile(cache, scene_);
+
+	// Create bubble streams
+	bubbles.Init(cache, scene_, graphics, 1.0f, 5.0f);
+	bubbles.Init(cache, scene_, graphics, 20.0f, 40.0f);
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -251,10 +258,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
 		}
-		if (input->GetMouseButtonDown(MOUSEB_LEFT))
-		{
-			missile.isActive = true;
-		}
+		//if (input->GetMouseButtonDown(MOUSEB_LEFT))
+		//{
+		//	missile.isActive = true;
+		//}
 	}
 	if (input->GetKeyPress(KEY_M))
 	{
@@ -526,19 +533,19 @@ Node* Main::CreatePlayer()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
-	Node* ballNode = scene_->CreateChild("ClientBall");
-	ballNode->SetScale(2.5f);
-	StaticModel* ballObject = ballNode->CreateComponent<StaticModel>();
+	Node* playerNode = scene_->CreateChild("ClientBall");
+	playerNode->SetScale(2.5f);
+	StaticModel* ballObject = playerNode->CreateComponent<StaticModel>();
 	ballObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
 	ballObject->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
 
-	RigidBody* body = ballNode->CreateComponent<RigidBody>();
+	RigidBody* body = playerNode->CreateComponent<RigidBody>();
 	body->SetMass(1.0f);
 	body->SetUseGravity(false);
-	CollisionShape* shape = ballNode->CreateComponent<CollisionShape>();
+	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
 	shape->SetSphere(1.0f);
 
-	return ballNode;
+	return playerNode;
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
@@ -547,11 +554,11 @@ void Main::MoveCamera()
 	// Only move the camera if we have a controllable object  
 	if (clientObjectID)
 	{
-		Node* ballNode = this->scene_->GetNode(clientObjectID);
-		if (ballNode)
+		Node* playerNode = this->scene_->GetNode(clientObjectID);
+		if (playerNode)
 		{
 			const float CAMERA_DISTANCE = 5.0f;
-			cameraNode_->SetPosition(ballNode->GetPosition() + cameraNode_->GetRotation() * Vector3::BACK * CAMERA_DISTANCE);
+			cameraNode_->SetPosition(playerNode->GetPosition() + cameraNode_->GetRotation() * Vector3::BACK * CAMERA_DISTANCE);
 		}
 	}
 }
@@ -579,10 +586,10 @@ void Main::ProcessClientControls()
 
 		const Controls& controls = connection->GetControls();
 
-		if (controls.buttons_ & 1)  Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & 2)  Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & 3)	Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & 4)  Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & 10)  Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & 20)  Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & 32)	 Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & 40)  Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		//if (controls.buttons_ & CTRL_ACTION)   Log::WriteRaw("Received from Client: Controls buttons E-ACTION \n");
 		//if (controls.buttons_ & CTRL_FIRE)	   Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
 	}
@@ -594,10 +601,10 @@ Controls Main::ClientToServerControls()
 	Input* input = GetSubsystem<Input>();
 	Controls controls;
 
-	controls.Set(1, input->GetKeyDown(KEY_W));
-	controls.Set(2, input->GetKeyDown(KEY_S));
-	controls.Set(3, input->GetKeyDown(KEY_A));
-	controls.Set(4, input->GetKeyDown(KEY_D));
+	controls.Set(10, input->GetKeyDown(KEY_W));
+	controls.Set(20, input->GetKeyDown(KEY_S));
+	controls.Set(32, input->GetKeyDown(KEY_A));
+	controls.Set(40, input->GetKeyDown(KEY_D));
 	//controls.Set(CTRL_ACTION, input->GetKeyDown(KEY_E));
 	//controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 

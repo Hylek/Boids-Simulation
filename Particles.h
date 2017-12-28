@@ -57,7 +57,7 @@ public:
 	Particles();
 	~Particles();
 
-	void Init(ResourceCache* cache, Scene* scene, Graphics* graphics);
+	void Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
 	void InitGroup(ResourceCache* cache, Scene* scene, Graphics* graphics, int number);
 	void Update(float timeStep);
 
