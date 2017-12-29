@@ -186,8 +186,6 @@ void Main::CreateLocalScene()
 	boxObject->SetMaterial(cache->GetResource<Material>("Materials/ChestText.xml"));
 	boxObject->SetCastShadows(true);
 	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
-	boxRB->SetCollisionLayer(2);
-	boxRB->SetCollisionMask(2);
 	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
 	boxCol->SetBox(Vector3::ONE);
 
@@ -223,6 +221,7 @@ void Main::CreateLocalScene()
 
 	// Create objects
 	boidSet.Init(cache, scene_);
+	missile.CreateMissile(cache, scene_);
 
 	// Create bubble streams
 	for (int i = 0; i < 50; i++)
@@ -292,26 +291,26 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		ignoreInputs = true;
 	}
-	if (hasGameStarted)
-	{
-		if (missile.isActive)
-		{
-			missile.model->SetEnabled(true);
-			if (swap == 1)
-			{
-				missile.rb->SetPosition(cameraNode_->GetPosition());
-				missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
-				swap = 0;
-			}
-			if (missile.missileTimer <= 0)
-			{
-				missile.isActive = false;
-				missile.model->SetEnabled(false);
-				missile.missileTimer = 10;
-				swap = 1;
-			}
-		}
-	}
+	//if (hasGameStarted)
+	//{
+	//	if (missile.isActive)
+	//	{
+	//		missile.model->SetEnabled(true);
+	//		if (swap == 1)
+	//		{
+	//			missile.rb->SetPosition(cameraNode_->GetPosition());
+	//			missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
+	//			swap = 0;
+	//		}
+	//		if (missile.missileTimer <= 0)
+	//		{
+	//			missile.isActive = false;
+	//			missile.model->SetEnabled(false);
+	//			missile.missileTimer = 10;
+	//			swap = 1;
+	//		}
+	//	}
+	//}
 	if (isServer)
 	{
 		boidSet.Update(timeStep, &missile);
@@ -559,6 +558,7 @@ Node* Main::CreatePlayer()
 	RigidBody* body = playerNode->CreateComponent<RigidBody>();
 	body->SetLinearDamping(0.65f);
 	body->SetAngularDamping(0.65f);
+	body->SetCollisionMask(4);
 	body->SetMass(1.0f);
 	body->SetUseGravity(false);
 	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
@@ -573,14 +573,15 @@ Node* Main::CreateMissile()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* node = scene_->CreateChild("Missile");
+	node->SetScale(Vector3(15.0f, 15.0f, 15.0f));
 	RigidBody* rb = node->CreateComponent<RigidBody>();
 	StaticModel* model = node->CreateComponent<StaticModel>();
 	CollisionShape* collider = node->CreateComponent<CollisionShape>();
 
 	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
 	collider->SetBox(Vector3::ONE);
-	rb->SetCollisionLayer(8);
-	rb->SetCollisionMask(2);
+	rb->SetCollisionLayer(2);
+	rb->SetCollisionMask(4);
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
 
@@ -596,7 +597,7 @@ void Main::ShootMissile(Connection* playerConnection, unsigned i)
 	newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
 
-	SubscribeToEvent(newNode, E_PHYSICSCOLLISION, URHO3D_HANDLER(Main, HandleCollision));
+	SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION

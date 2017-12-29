@@ -25,6 +25,7 @@ Boid::~Boid()
 void Boid::Init(ResourceCache* cache, Scene* scene)
 {
 	node = scene->CreateChild("Boid");
+	node->SetScale(Vector3::ONE);
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
@@ -33,7 +34,7 @@ void Boid::Init(ResourceCache* cache, Scene* scene)
 	model->SetCastShadows(true);
 	collider->SetCone(5.0f, 5.0f);
 	rb->SetUseGravity(false);
-	rb->SetCollisionLayer(8);
+	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
 	rb->SetMass(5.0f);
 	node->SetPosition(Vector3(Random(20.0f) - 40.0f, 30.0f, Random(20.0f) - 40.0f));
