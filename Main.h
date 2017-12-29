@@ -101,6 +101,7 @@ private:
 	void Disconnect(StringHash eventType, VariantMap& eventData);
 	void ClientConnected(StringHash eventType, VariantMap & eventData);
 	void ClientDisconnecting(StringHash eventType, VariantMap & eventData);
+	void HandleCollision(StringHash eventType, VariantMap& eventData);
 	void ClientStartGame(StringHash eventType, VariantMap& eventData);
 	void FireMissile(StringHash eventType, VariantMap& eventData);
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
@@ -122,6 +123,7 @@ private:
 	Vector3 clientDirection;
 	float clientYaw = 0;
 	float clientPitch = 0;
+	float score;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
 

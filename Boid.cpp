@@ -31,9 +31,10 @@ void Boid::Init(ResourceCache* cache, Scene* scene)
 
 	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
 	model->SetCastShadows(true);
-	collider->SetBox(Vector3::ONE);
+	collider->SetCone(5.0f, 5.0f);
 	rb->SetUseGravity(false);
-	rb->SetCollisionLayer(2);
+	rb->SetCollisionLayer(8);
+	rb->SetCollisionMask(2);
 	rb->SetMass(5.0f);
 	node->SetPosition(Vector3(Random(20.0f) - 40.0f, 30.0f, Random(20.0f) - 40.0f));
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
@@ -129,7 +130,7 @@ Vector3 Boid::Repel(Boid * boid)
 	return repelForce;
 }
 
-Vector3 Boid::MissileDodge(Boid * boid, Missile * missile)
+Vector3 Boid::MissileDodge(Boid * boid, Missile* missile)
 {
 	int neighbourCount = 0;
 	Vector3 dodgeForce;

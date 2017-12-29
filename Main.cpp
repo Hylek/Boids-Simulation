@@ -27,9 +27,11 @@ void Main::Start()
 	Sample::InitMouseMode(MM_RELATIVE);
 	CreateInitialScene();
 	SubscribeToEvents();
+	OpenConsoleWindow();
 	CreateGameMenu(cache, context_, ui);
 	isServer = false;
 	hasGameStarted = false;
+	score = 0;
 }
 
 void Main::SubscribeToEvents()
@@ -43,6 +45,8 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
+
+	SubscribeToEvent(boidSet.boidList->node, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
 }
 
 void Main::CreateInitialScene()
@@ -87,7 +91,7 @@ void Main::CreateInitialScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
+	boxNode->SetPosition(Vector3(-140.0f, /*17.7f*/40.0f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
 	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
@@ -174,7 +178,7 @@ void Main::CreateLocalScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
+	boxNode->SetPosition(Vector3(-140.0f, /*17.7f*/40.0f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
 	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
@@ -183,6 +187,7 @@ void Main::CreateLocalScene()
 	boxObject->SetCastShadows(true);
 	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
 	boxRB->SetCollisionLayer(2);
+	boxRB->SetCollisionMask(2);
 	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
 	boxCol->SetBox(Vector3::ONE);
 
@@ -218,7 +223,6 @@ void Main::CreateLocalScene()
 
 	// Create objects
 	boidSet.Init(cache, scene_);
-	missile.CreateMissile(cache, scene_);
 
 	// Create bubble streams
 	for (int i = 0; i < 50; i++)
@@ -313,6 +317,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		boidSet.Update(timeStep, &missile);
 	}
 	bubbles.Update(timeStep);
+
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
@@ -322,6 +327,13 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 	ui->GetCursor()->SetVisible(isMenuVisible);
 	window->SetVisible(isMenuVisible);
 	MoveCamera();
+}
+
+void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
+{
+	printf("Collision detected\n");
+	score += 10;
+
 }
 
 //
@@ -567,7 +579,8 @@ Node* Main::CreateMissile()
 
 	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
 	collider->SetBox(Vector3::ONE);
-	rb->SetCollisionLayer(3);
+	rb->SetCollisionLayer(8);
+	rb->SetCollisionMask(2);
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
 
@@ -578,10 +591,12 @@ Node* Main::CreateMissile()
 void Main::ShootMissile(Connection* playerConnection, unsigned i)
 {
 	Node* newNode = CreateMissile();
-	newNode->SetAttribute("ID", i); // Use this to work out who scored what later!
+	//newNode->SetAttribute("ID", i); // Use this to work out who scored what later!
 	Node* playerNode = serverObjects[playerConnection];
-	newNode->SetPosition(playerNode->GetPosition() * 1.1f);
+	newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
+
+	SubscribeToEvent(newNode, E_PHYSICSCOLLISION, URHO3D_HANDLER(Main, HandleCollision));
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
@@ -624,11 +639,14 @@ void Main::ProcessClientControls()
 		Quaternion rotation(0.0f, controls.yaw_, 0.0f);
 		clientDirection = Vector3(0, 0, rotation.x_);
 
-		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 10.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 30.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 30.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
 		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
 		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i);
+		if (controls.buttons_ & 16) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 10.0f);
+		if (controls.buttons_ & 32) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 10.0f);
+
 	}
 }
 
@@ -643,6 +661,9 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
 	controls.Set(CTRL_FIRE, input->GetKeyDown(KEY_E));
+	controls.Set(16, input->GetKeyDown(KEY_R));
+	controls.Set(32, input->GetKeyDown(KEY_F));
+
 
 	controls.yaw_ = yaw_;
 	return controls;
