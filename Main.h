@@ -37,6 +37,7 @@
 #include <Urho3D/Urho2D/AnimatedSprite2D.h>
 #include <Urho3D/Urho2D/AnimationSet2D.h>
 #include <Urho3D/Urho2D/Sprite2D.h>
+#include <iostream>
 
 #include "Sample.h"
 #include "Boid.h"

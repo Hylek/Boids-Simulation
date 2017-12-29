@@ -332,6 +332,7 @@ void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
 {
 	printf("Collision detected\n");
 	score += 10;
+	std::cout << score << std::endl;
 
 }
 
