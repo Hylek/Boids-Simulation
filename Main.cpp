@@ -93,11 +93,12 @@ void Main::CreateInitialScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(0.0f, 50.0f, 50.0f));
+	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
+	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
 	boxObject->SetModel(cache->GetResource<Model>("Models/TreasureChestShut.mdl"));
-	boxObject->SetMaterial(cache->GetResource<Material>("Materials/TreasureChest.xml"));
+	boxObject->SetMaterial(cache->GetResource<Material>("Materials/ChestText.xml"));
 	boxObject->SetCastShadows(true);
 	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
 	boxRB->SetCollisionLayer(2);
@@ -592,8 +593,6 @@ Node* Main::CreatePlayer()
 Node* Main::CreateMissile()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
-
-	Node* playerNode = this->scene_->GetNode(clientObjectID);
 
 	Node* node = scene_->CreateChild("Missile");
 	RigidBody* rb = node->CreateComponent<RigidBody>();
