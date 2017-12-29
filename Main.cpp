@@ -4,9 +4,11 @@ URHO3D_DEFINE_APPLICATION_MAIN(Main)
 
 static const StringHash E_CLIENTOBJECTAUTHORITY("ClientObjectAuthority");
 static const StringHash PLAYER_ID("IDENTITY");
+static const StringHash MISSILE_ID("MISSILEIDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_STARTGAME("StartGame");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
+static const StringHash E_REQUESTMISSILE("RequestMissile");
 static const StringHash E_FIREMISSILE("FireMissile");
 
 Main::Main(Context* context) : Sample(context)
@@ -41,10 +43,12 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, ClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, ClientReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
-	SubscribeToEvent(E_FIREMISSILE, URHO3D_HANDLER(Main, ClientRequestFireMissile));
+	SubscribeToEvent(E_FIREMISSILE, URHO3D_HANDLER(Main, FireMissile));
+	SubscribeToEvent(E_REQUESTMISSILE, URHO3D_HANDLER(Main, ClientRequestFireMissile));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_FIREMISSILE);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_REQUESTMISSILE);
 }
 
 void Main::CreateInitialScene()
@@ -87,7 +91,7 @@ void Main::CreateInitialScene()
 	light->SetSpecularIntensity(0.5f);
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
-	// Creating a box
+	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
 	boxNode->SetPosition(Vector3(0.0f, 50.0f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
@@ -131,8 +135,10 @@ void Main::CreateInitialScene()
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
 	// Create bubble streams
-	bubbles.Init(cache, scene_, graphics, 1.0f, 5.0f);
-	bubbles.Init(cache, scene_, graphics, 20.0f, 40.0f);
+	for (int i = 0; i < 100; i++)
+	{
+		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+	}
 }
 
 void Main::CreateLocalScene()
@@ -171,18 +177,18 @@ void Main::CreateLocalScene()
 	light->SetSpecularIntensity(0.5f);
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
-	//// Creating a box
-	//Node* boxNode = scene_->CreateChild("Box", LOCAL);
-	//boxNode->SetPosition(Vector3(0.0f, 10.0f, 50.0f));
-	//boxNode->SetScale(Vector3(10.0f, 10.0f, 10.0f));
-	//StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
-	//boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	//boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-	//boxObject->SetCastShadows(true);
-	//RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
-	//boxRB->SetCollisionLayer(2);
-	//CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
-	//boxCol->SetBox(Vector3::ONE);
+	// Creating a treasure chest
+	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
+	boxNode->SetPosition(Vector3(0.0f, 50.0f, 50.0f));
+	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
+	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
+	boxObject->SetModel(cache->GetResource<Model>("Models/TreasureChestShut.mdl"));
+	boxObject->SetMaterial(cache->GetResource<Material>("Materials/TreasureChest.xml"));
+	boxObject->SetCastShadows(true);
+	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
+	boxRB->SetCollisionLayer(2);
+	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
+	boxCol->SetBox(Vector3::ONE);
 
 	// Creating the ocean water
 	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
@@ -219,8 +225,10 @@ void Main::CreateLocalScene()
 	missile.CreateMissile(cache, scene_);
 
 	// Create bubble streams
-	bubbles.Init(cache, scene_, graphics, 1.0f, 5.0f);
-	bubbles.Init(cache, scene_, graphics, 20.0f, 40.0f);
+	for (int i = 0; i < 50; i++)
+	{
+		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+	}
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -235,6 +243,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	Input* input = GetSubsystem<Input>();
 	const float MOVE_SPEED = 40.0f;
 	const float MOUSE_SENSITIVITY = 0.1f;
+
 	// Adjust node yaw and pitch via mouse movement and limit pitch between -90 to 90
 	IntVector2 mouseMove = input->GetMouseMove();
 	yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
@@ -409,6 +418,7 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 // Connect a client to the server in SPECTATOR MODE
 void Main::Connect(StringHash eventType, VariantMap& eventData)
 {
+	CreateLocalScene();
 	Network* network = GetSubsystem<Network>();
 	String address = serverAddressEdit->GetText().Trimmed();
 
@@ -465,9 +475,10 @@ void Main::ClientDisconnecting(StringHash eventType, VariantMap & eventData)
 {
 	Log::WriteRaw("A client is disconnecting from the server.");
 	using namespace ClientConnected;
+	Connection* connection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
 }
 
-// Add the client into the game when the player presses Start Game
+// Add the client into the game when the player presses Start Game // CLIENT FUNCTION
 void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 {
 	Log::WriteRaw("The client is starting the a new game");
@@ -528,17 +539,30 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 // The client has requested to fire a missile, create a missile object and fire it.
 void Main::ClientRequestFireMissile(StringHash eventType, VariantMap & eventData)
 {
-	Log::WriteRaw("Event sent by the Client and running on Server: Client wants to fire a missile.");
+	Log::WriteRaw("Client to wants to fire a missile, request it!");
+	Network* network = GetSubsystem<Network>();
+	Connection* serverConnection = network->GetServerConnection();
+	if (serverConnection)
+	{
+		VariantMap remoteEventData;
+		remoteEventData[MISSILE_ID] = 1;
+		serverConnection->SendRemoteEvent(E_FIREMISSILE, true, remoteEventData);
+	}
+}
+
+void Main::FireMissile(StringHash eventType, VariantMap & eventData)
+{
+	Log::WriteRaw("Event sent by the Client and running on Server: Client has requested a missile.");
 
 	using namespace ClientConnected;
-	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
+	Connection* connection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
 
 	Node* newObject = CreateMissile();
-	serverObjects[newConnection] = newObject;
+	serverObjects[connection] = newObject;
 
 	VariantMap remoteEventData;
-	remoteEventData[PLAYER_ID] = newObject->GetID();
-	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
+	remoteEventData[MISSILE_ID] = newObject->GetID();
+	connection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
 }
 
 // Create client controlled object on the server // CLIENT FUNCTION
@@ -554,8 +578,8 @@ Node* Main::CreatePlayer()
 	ballObject->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
 
 	RigidBody* body = playerNode->CreateComponent<RigidBody>();
-	body->SetLinearDamping(1.0f);
-	body->SetAngularDamping(1.0f);
+	body->SetLinearDamping(0.65f);
+	body->SetAngularDamping(0.65f);
 	body->SetMass(1.0f);
 	body->SetUseGravity(false);
 	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
@@ -570,18 +594,28 @@ Node* Main::CreateMissile()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* playerNode = this->scene_->GetNode(clientObjectID);
+
 	Node* node = scene_->CreateChild("Missile");
-	node->SetPosition(playerNode->GetPosition());
 	RigidBody* rb = node->CreateComponent<RigidBody>();
 	StaticModel* model = node->CreateComponent<StaticModel>();
 	CollisionShape* collider = node->CreateComponent<CollisionShape>();
 
 	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
-	model->SetEnabled(false);
+	collider->SetBox(Vector3::ONE);
+	rb->SetCollisionLayer(3);
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
 
 	return node;
+}
+
+
+void Main::ShootMissile(Connection* playerConnection)
+{
+	Node* newNode = CreateMissile();
+	Node* playerNode = serverObjects[playerConnection];
+	newNode->SetPosition(playerNode->GetPosition() * 1.1f);
+	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
@@ -624,11 +658,11 @@ void Main::ProcessClientControls()
 		Quaternion rotation(0.0f, controls.yaw_, 0.0f);
 		clientDirection = Vector3(0, 0, rotation.x_);
 
-		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-		if (controls.buttons_ & CTRL_FIRE)	  Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
+		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 10.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection);
 	}
 }
 
@@ -642,7 +676,7 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
-	controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
+	controls.Set(CTRL_FIRE, input->GetKeyDown(KEY_E));
 
 	controls.yaw_ = yaw_;
 	return controls;

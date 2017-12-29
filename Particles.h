@@ -58,9 +58,9 @@ public:
 	~Particles();
 
 	void Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
-	void InitGroup(ResourceCache* cache, Scene* scene, Graphics* graphics, int number);
+	void InitGroup(ResourceCache* cache, Scene* scene, Graphics* graphics, int number, float xPos, float yPos);
 	void Update(float timeStep);
 
 private:
-	Vector<SharedPtr<Node> > spriteNodes_;
+	Vector<SharedPtr<Node>> spriteNodes_;
 };

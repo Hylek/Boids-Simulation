@@ -20,13 +20,10 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, flo
 	{
 		float scaleAmount = Random(0.2f);
 		SharedPtr<Node> spriteNode(scene->CreateChild("Bubble", LOCAL));
-		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(-30.0f), zPos));
+		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(-50.0f), zPos));
 		spriteNode->SetScale(Vector3(scaleAmount, scaleAmount, scaleAmount));
 
 		StaticSprite2D* staticSprite = spriteNode->CreateComponent<StaticSprite2D>();
-
-		// Set random color
-		//staticSprite->SetColor(Color(Random(1.0f), Random(1.0f), Random(1.0f), 1.0f));
 
 		// Set blend mode
 		staticSprite->SetBlendMode(BLEND_ALPHA);
@@ -41,11 +38,11 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, flo
 	}
 }
 
-void Particles::InitGroup(ResourceCache * cache, Scene * scene, Graphics * graphics, int number)
+void Particles::InitGroup(ResourceCache * cache, Scene * scene, Graphics * graphics, int number, float xPos, float yPos)
 {
 	for (int i = 0; i < number; i++)
 	{
-		//Init(cache, scene, graphics);
+		Init(cache, scene, graphics, xPos, yPos);
 	}
 }
 
@@ -66,7 +63,7 @@ void Particles::Update(float timeStep)
 		}
 		if (newPosition.y_ > 90.0f)
 		{
-			newPosition.y_ = Random(45.0f);
+			newPosition.y_ = Random(-25.0f);
 		}
 		node->SetPosition(newPosition);
 	}

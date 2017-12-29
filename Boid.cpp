@@ -228,7 +228,7 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 	}
 }
 
-void BoidSet::Update(float tm, Missile * missile)
+void BoidSet::Update(float tm, Missile* missile)
 {
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{

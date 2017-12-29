@@ -102,12 +102,13 @@ private:
 	void ClientConnected(StringHash eventType, VariantMap & eventData);
 	void ClientDisconnecting(StringHash eventType, VariantMap & eventData);
 	void ClientStartGame(StringHash eventType, VariantMap& eventData);
-	void ServerStartGame(StringHash eventType, VariantMap& eventData);
+	void FireMissile(StringHash eventType, VariantMap& eventData);
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
 	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
+	void ShootMissile(Connection* playerConnection);
 	Node* CreatePlayer();
 	Node* CreateMissile();
 	void MoveCamera();
