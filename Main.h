@@ -110,7 +110,7 @@ private:
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
 	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
-	void ShootMissile(Connection* playerConnection, unsigned i);
+	void ShootMissile(Connection* playerConnection, unsigned i, VariantMap client);
 	Node* CreatePlayer();
 	Node* CreateMissile();
 	void MoveCamera();
@@ -118,6 +118,7 @@ private:
 	// Control processing
 	int CTRL_FORWARD = 1;
 	int CTRL_BACK = 2;
+	float timer = 5.0f;
 	int CTRL_LEFT = 4;
 	int CTRL_RIGHT = 8;
 	int CTRL_FIRE = 1024;

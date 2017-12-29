@@ -9,6 +9,8 @@ static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_STARTGAME("StartGame");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
 
+// DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
+
 Main::Main(Context* context) : Sample(context)
 {
 
@@ -311,6 +313,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	//		}
 	//	}
 	//}
+	if (timer > 0)
+	{
+		timer -= timeStep;
+	}
 	if (isServer)
 	{
 		boidSet.Update(timeStep, &missile);
@@ -590,15 +596,23 @@ Node* Main::CreateMissile()
 }
 
 // Client has requested a missile, create one and fire it. // SERVER FUNCTION
-void Main::ShootMissile(Connection* playerConnection, unsigned i)
+void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap client)
 {
-	Node* newNode = CreateMissile();
-	//newNode->SetAttribute("ID", i); // Use this to work out who scored what later!
-	Node* playerNode = serverObjects[playerConnection];
-	newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
-	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
+	if (timer <= 0)
+	{
+		Node* newNode = CreateMissile();
+		newNode->SetVar("ID", client);
+		Node* playerNode = serverObjects[playerConnection];
+		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
+		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
 
-	SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
+		SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
+		if (newNode->GetVar("ID") == client) // Detecting which missile belongs to which client
+		{
+			//playerConnection->SendEvent()
+		}
+		timer = 3;
+	}
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
@@ -625,7 +639,7 @@ void Main::ServerToClientObjectID(StringHash eventType, VariantMap & eventData)
 
 // Process controls from clients // SERVER FUNCTION
 void Main::ProcessClientControls()
-{
+{	
 	Network* network = GetSubsystem<Network>();
 	const Vector<SharedPtr<Connection> >& connections = network->GetClientConnections();
 
@@ -634,6 +648,7 @@ void Main::ProcessClientControls()
 	{
 		Connection* connection = connections[i];
 		Node* playerNode = serverObjects[connection];
+		VariantMap client = connection->GetIdentity();
 
 		if (!playerNode) continue;
 
@@ -645,7 +660,7 @@ void Main::ProcessClientControls()
 		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 30.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
 		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
 		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i);
+		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); 
 		if (controls.buttons_ & 16) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 10.0f);
 		if (controls.buttons_ & 32) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 10.0f);
 
