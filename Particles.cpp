@@ -28,6 +28,7 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, flo
 
 		// Set blend mode
 		staticSprite->SetBlendMode(BLEND_ALPHA);
+
 		// Set sprite
 		staticSprite->SetSprite(sprite);
 

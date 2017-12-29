@@ -108,7 +108,7 @@ private:
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
 	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
-	void ShootMissile(Connection* playerConnection);
+	void ShootMissile(Connection* playerConnection, unsigned i);
 	Node* CreatePlayer();
 	Node* CreateMissile();
 	void MoveCamera();

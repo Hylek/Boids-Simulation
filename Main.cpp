@@ -8,8 +8,6 @@ static const StringHash MISSILE_ID("MISSILEIDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_STARTGAME("StartGame");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
-static const StringHash E_REQUESTMISSILE("RequestMissile");
-static const StringHash E_FIREMISSILE("FireMissile");
 
 Main::Main(Context* context) : Sample(context)
 {
@@ -43,12 +41,8 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, ClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, ClientReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
-	SubscribeToEvent(E_FIREMISSILE, URHO3D_HANDLER(Main, FireMissile));
-	SubscribeToEvent(E_REQUESTMISSILE, URHO3D_HANDLER(Main, ClientRequestFireMissile));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
-	GetSubsystem<Network>()->RegisterRemoteEvent(E_FIREMISSILE);
-	GetSubsystem<Network>()->RegisterRemoteEvent(E_REQUESTMISSILE);
 }
 
 void Main::CreateInitialScene()
@@ -180,11 +174,12 @@ void Main::CreateLocalScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(0.0f, 50.0f, 50.0f));
+	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
+	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
 	boxObject->SetModel(cache->GetResource<Model>("Models/TreasureChestShut.mdl"));
-	boxObject->SetMaterial(cache->GetResource<Material>("Materials/TreasureChest.xml"));
+	boxObject->SetMaterial(cache->GetResource<Material>("Materials/ChestText.xml"));
 	boxObject->SetCastShadows(true);
 	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
 	boxRB->SetCollisionLayer(2);
@@ -403,7 +398,7 @@ LineEdit* Main::CreateLineEdit(const String & text, int pHeight, Urho3D::Window 
 // NETWORK CODE START
 //
 
-// Start a new server
+// Start a new server // DEFAULT
 void Main::StartServer(StringHash eventType, VariantMap& eventData)
 {
 	Log::WriteRaw("Server is starting...");
@@ -416,7 +411,7 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 	isServer = true;
 }
 
-// Connect a client to the server in SPECTATOR MODE
+// Connect a client to the server in SPECTATOR MODE // CLIENT FUNCTION
 void Main::Connect(StringHash eventType, VariantMap& eventData)
 {
 	CreateLocalScene();
@@ -444,7 +439,7 @@ void Main::ClientConnected(StringHash eventType, VariantMap & eventData)
 	newConnection->SetScene(scene_);
 }
 
-// Disconnect a client from the server OR if server, stop the server
+// Disconnect a client from the server OR if server, stop the server // SERVER AND CLIENT FUNCTION
 void Main::Disconnect(StringHash eventType, VariantMap& eventData)
 {
 	Network* network = GetSubsystem<Network>();
@@ -537,36 +532,7 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
 }
 
-// The client has requested to fire a missile, create a missile object and fire it.
-void Main::ClientRequestFireMissile(StringHash eventType, VariantMap & eventData)
-{
-	Log::WriteRaw("Client to wants to fire a missile, request it!");
-	Network* network = GetSubsystem<Network>();
-	Connection* serverConnection = network->GetServerConnection();
-	if (serverConnection)
-	{
-		VariantMap remoteEventData;
-		remoteEventData[MISSILE_ID] = 1;
-		serverConnection->SendRemoteEvent(E_FIREMISSILE, true, remoteEventData);
-	}
-}
-
-void Main::FireMissile(StringHash eventType, VariantMap & eventData)
-{
-	Log::WriteRaw("Event sent by the Client and running on Server: Client has requested a missile.");
-
-	using namespace ClientConnected;
-	Connection* connection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
-
-	Node* newObject = CreateMissile();
-	serverObjects[connection] = newObject;
-
-	VariantMap remoteEventData;
-	remoteEventData[MISSILE_ID] = newObject->GetID();
-	connection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
-}
-
-// Create client controlled object on the server // CLIENT FUNCTION
+// Create client controlled object on the server // SERVER FUNCTION
 Node* Main::CreatePlayer()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
@@ -589,7 +555,7 @@ Node* Main::CreatePlayer()
 	return playerNode;
 }
 
-// Create the missile object.
+// Create the missile object. // SERVER FUNCTION
 Node* Main::CreateMissile()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
@@ -608,10 +574,11 @@ Node* Main::CreateMissile()
 	return node;
 }
 
-
-void Main::ShootMissile(Connection* playerConnection)
+// Client has requested a missile, create one and fire it. // SERVER FUNCTION
+void Main::ShootMissile(Connection* playerConnection, unsigned i)
 {
 	Node* newNode = CreateMissile();
+	newNode->SetAttribute("ID", i); // Use this to work out who scored what later!
 	Node* playerNode = serverObjects[playerConnection];
 	newNode->SetPosition(playerNode->GetPosition() * 1.1f);
 	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
@@ -661,7 +628,7 @@ void Main::ProcessClientControls()
 		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 10.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
 		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
 		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection);
+		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i);
 	}
 }
 
