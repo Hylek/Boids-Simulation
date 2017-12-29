@@ -554,8 +554,8 @@ Node* Main::CreatePlayer()
 	ballObject->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
 
 	RigidBody* body = playerNode->CreateComponent<RigidBody>();
-	body->SetLinearDamping(0.5f);
-	body->SetAngularDamping(0.5f);
+	body->SetLinearDamping(1.0f);
+	body->SetAngularDamping(1.0f);
 	body->SetMass(1.0f);
 	body->SetUseGravity(false);
 	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
@@ -625,7 +625,7 @@ void Main::ProcessClientControls()
 		clientDirection = Vector3(0, 0, rotation.x_);
 
 		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 10.0f);   Log::WriteRaw("Received from Client: Controls buttons BACK \n");
 		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
 		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		if (controls.buttons_ & CTRL_FIRE)	  Log::WriteRaw("Received from Client: Controls buttons FIRE \n");
