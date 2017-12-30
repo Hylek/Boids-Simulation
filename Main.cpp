@@ -588,10 +588,11 @@ Node* Main::CreatePlayer()
 	body->SetLinearDamping(0.65f);
 	body->SetAngularDamping(0.65f);
 	body->SetCollisionMask(4);
+	body->SetCollisionMask(6);
 	body->SetMass(5.0f);
 	body->SetUseGravity(false);
 	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
-	shape->SetBox(Vector3::ONE);
+	shape->SetBox(Vector3(3.0f, 5.0f, 15.0f));
 
 	return playerNode;
 }
@@ -652,7 +653,7 @@ void Main::ProcessCollisions(Connection* connection)
 	{
 		Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
 		PhysicsRaycastResult result;
-		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 2, 3, 4);
+		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 5, 5, 4);
 		if (result.body_)
 		{
 			Node* boid = result.body_->GetNode();
@@ -730,8 +731,8 @@ void Main::ProcessClientControls()
 
 		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
 		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 0.25f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 0.25f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); 
 		if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
 		if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
