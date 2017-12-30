@@ -12,6 +12,8 @@ static const StringHash CLIENT_SCORE("ClientScores");
 static const StringHash VAR_SCORE("Score");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
 static const StringHash E_HITBOID("HitBoid");
+static const StringHash E_GAMEOVER("GameOver");
+static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 
 // DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
 
@@ -37,6 +39,7 @@ void Main::Start()
 	CreateGameMenu(cache, context_, ui);
 	isServer = false;
 	hasGameStarted = false;
+	text = ui->GetRoot()->CreateChild<Text>();
 }
 
 void Main::SubscribeToEvents()
@@ -50,10 +53,14 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
 	SubscribeToEvent(E_HITBOID, URHO3D_HANDLER(Main, HitBoid));
 	SubscribeToEvent(E_SCOREUPDATE, URHO3D_HANDLER(Main, UpdateClientScore));
+	SubscribeToEvent(E_GAMEOVER, URHO3D_HANDLER(Main, GameOver));
+	SubscribeToEvent(E_WAITINGONPLAYERS, URHO3D_HANDLER(Main, ServerWaitingOnMorePlayers));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_HITBOID);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_SCOREUPDATE);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_GAMEOVER);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
 
 }
 
@@ -155,7 +162,7 @@ void Main::CreateLocalScene()
 
 	cameraNode_ = new Node(context_);
 	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
-	cameraNode_->SetPosition(Vector3(30.0f, 40.0f, 0.0f));
+	cameraNode_->SetPosition(Vector3(Random(30.0f), 40.0f, Random(30.0f)));
 	cam->SetFarClip(1000.0f);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
@@ -315,20 +322,19 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	//		}
 	//	}
 	//}
-	if (timer > 0)
-	{
-		timer -= timeStep;
-	}
+
 	if (isServer)
 	{
 		boidSet.Update(timeStep, &missile);
 
-		if (gameTimer > 0)
+		if (gameTimer > 0 && clientCount >= 2)
 		{
 			gameTimer -= timeStep;
+			std::cout << gameTimer << std::endl;
 		}
 		if (gameTimer <= 0)
 		{
+			std::cout << "GAME OVER" << std::endl;
 			// GAME OVER
 		}
 	}
@@ -504,6 +510,12 @@ void Main::ClientDisconnecting(StringHash eventType, VariantMap & eventData)
 	Log::WriteRaw("A client is disconnecting from the server.");
 	using namespace ClientConnected;
 	Connection* connection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
+	if (clientCount > 0)
+	{
+		Node* playerNode = serverObjects[connection];
+		playerNode->SetEnabled(false);
+		clientCount--;
+	}
 }
 
 // Add the client into the game when the player presses Start Game // CLIENT FUNCTION
@@ -565,10 +577,27 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 
 	Node* playerNode = CreatePlayer();
 	serverObjects[newConnection] = playerNode;
+	clientCount++;
 
 	VariantMap remoteEventData;
 	remoteEventData[PLAYER_ID] = playerNode->GetID();
 	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
+}
+
+// Game over is declared, inform the clients // CLIENT FUNCTION
+void Main::GameOver(StringHash eventType, VariantMap & eventData)
+{
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	UI* ui = GetSubsystem<UI>();
+
+	// Construct new Text object, set string to display and font to use
+	text->SetText("THE GAME IS NOW OVER!");
+	text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+
+	// Position the text relative to the screen center
+	text->SetHorizontalAlignment(HA_CENTER);
+	text->SetVerticalAlignment(VA_CENTER);
+	text->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
 }
 
 // Create client controlled object on the server // SERVER FUNCTION
@@ -622,27 +651,23 @@ Node* Main::CreateMissile()
 // Client has requested a missile, create one and fire it. // SERVER FUNCTION
 void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap client)
 {
-	if (timer <= 0)
+	Node* newNode = CreateMissile();
+	missileVector.emplace_back(newNode);
+	std::cout << missileVector.size() << std::endl;
+
+	Node* playerNode = serverObjects[playerConnection];
+	newNode->SetVar("ID", playerConnection->GetIdentity());
+	newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
+	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
+
+	SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
+
+	VariantMap remoteEventData;
+	remoteEventData[MISSILE_ID] = newNode->GetID();
+
+	if (newNode->GetVar("ID") == client) // Detecting which missile belongs to which client
 	{
-		Node* newNode = CreateMissile();
-		missileVector.emplace_back(newNode);
-		std::cout << missileVector.size() << std::endl;
-
-		Node* playerNode = serverObjects[playerConnection];
-		newNode->SetVar("ID", playerConnection->GetIdentity());
-		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
-		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
-
-		SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
-
-		VariantMap remoteEventData;
-		remoteEventData[MISSILE_ID] = newNode->GetID();
-
-		if (newNode->GetVar("ID") == client) // Detecting which missile belongs to which client
-		{
-			playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
-		}
-		timer = 3;
+		playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
 	}
 }
 
@@ -671,6 +696,21 @@ void Main::ProcessCollisions(Connection* connection)
 			}
 		}
 	}
+}
+
+void Main::ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventData)
+{
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	UI* ui = GetSubsystem<UI>();
+
+	// Construct new Text object, set string to display and font to use
+	text->SetText("Waiting on one more player!");
+	text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+
+	// Position the text relative to the screen center
+	text->SetHorizontalAlignment(HA_CENTER);
+	text->SetVerticalAlignment(VA_CENTER);
+	text->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
 }
 
 // Client recieves it's score from the server // CLIENT FUNCTION
@@ -716,6 +756,12 @@ void Main::ProcessClientControls()
 	Network* network = GetSubsystem<Network>();
 	const Vector<SharedPtr<Connection> >& connections = network->GetClientConnections();
 
+	if (clientCount < 2)
+	{
+		VariantMap remoteEventData;
+		network->BroadcastRemoteEvent(E_WAITINGONPLAYERS, true, remoteEventData);
+	}
+
 	// Loop through every client connected to the server
 	for (unsigned i = 0; i < connections.Size(); ++i)
 	{
@@ -729,15 +775,27 @@ void Main::ProcessClientControls()
 		Quaternion rotation(0.0f, controls.yaw_, 0.0f);
 		clientDirection = Vector3(0, 0, rotation.x_);
 
-		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); 
-		if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
-		if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
+		if (gameTimer > 0 && clientCount >= 2)
+		{
+			if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+			if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+			if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+			if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); 
+			if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
+			if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
+		}
 
-		ProcessCollisions(connection);
+		if (clientCount >= 2)
+		{
+			ProcessCollisions(connection);
+		}
+
+		if (gameTimer <= 0)
+		{
+			VariantMap remoteEventData;
+			network->BroadcastRemoteEvent(E_GAMEOVER, true, remoteEventData);
+		}
 	}
 }
 
@@ -751,7 +809,7 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
-	controls.Set(CTRL_FIRE, input->GetKeyDown(KEY_E));
+	controls.Set(CTRL_FIRE, input->GetMouseButtonPress(MOUSEB_LEFT));
 	controls.Set(16, input->GetKeyDown(KEY_R));
 	controls.Set(32, input->GetKeyDown(KEY_F));
 

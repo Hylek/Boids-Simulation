@@ -95,6 +95,9 @@ private:
 
 	// Server code START
 	static const unsigned short SERVER_PORT = 2345;
+	float clientCount = 0;
+	float clientStarted = 0;
+	Text* text;
 	float moveLeft = 1.0f;
 	float gameTimer = 0;
 	HashMap<Connection*, WeakPtr<Node> > serverObjects; // Variable to keep track of client controlled server objects.
@@ -106,12 +109,12 @@ private:
 	void ClientDisconnecting(StringHash eventType, VariantMap & eventData);
 	void HandleCollision(StringHash eventType, VariantMap& eventData);
 	void ClientStartGame(StringHash eventType, VariantMap& eventData);
-	void FireMissile(StringHash eventType, VariantMap& eventData);
+	void GameOver(StringHash eventType, VariantMap & eventData);
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
+	void ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventData);
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
 	void UpdateClientScore(StringHash eventType, VariantMap & eventData);
-	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
 	void HitBoid(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
 	void ShootMissile(Connection* playerConnection, unsigned i, VariantMap client);
