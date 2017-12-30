@@ -634,6 +634,22 @@ void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap cli
 			playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
 		}
 		timer = 3;
+
+		//Ray cameraRay(newNode->GetPosition(), newNode->GetWorldDirection() * Vector3::FORWARD * 100.0f);
+		//PhysicsRaycastResult result;
+		//scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 12.0, 15.0, 4);
+		//if (result.body_)
+		//{
+		//	Component* model = result.body_->GetComponent<StaticModel>();
+		//	Node* boid = model->GetNode();
+
+		//	if (boid->GetName() == "Boid")
+		//	{
+		//		// Add score
+		//		boid->SetEnabled(false);
+		//		std::cout << "MISSILE HIT A BOID" << std::endl;
+		//	}
+		//}
 	}
 }
 
@@ -695,6 +711,20 @@ void Main::ProcessClientControls()
 		if (controls.buttons_ & 16) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 10.0f);
 		if (controls.buttons_ & 32) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 10.0f);
 
+		Ray cameraRay(playerNode->GetPosition(), playerNode->GetPosition() + playerNode->GetRotation() * Vector3::FORWARD * 100.0f);
+		PhysicsRaycastResult result;
+		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 10, 10, 4);
+		if (result.body_)
+		{
+			Node* boid = result.body_->GetNode();
+
+			if (boid->GetName() == "Boid")
+			{
+				// Add score
+				boid->SetEnabled(false);
+				std::cout << "MISSILE HIT A BOID" << std::endl;
+			}
+		}
 	}
 }
 
