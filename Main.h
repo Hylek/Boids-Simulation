@@ -38,6 +38,7 @@
 #include <Urho3D/Urho2D/AnimationSet2D.h>
 #include <Urho3D/Urho2D/Sprite2D.h>
 #include <iostream>
+#include <vector>
 
 #include "Sample.h"
 #include "Boid.h"
@@ -109,8 +110,10 @@ private:
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
 	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
+	void HitBoid(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
 	void ShootMissile(Connection* playerConnection, unsigned i, VariantMap client);
+	void ProcessCollisions();
 	Node* CreatePlayer();
 	Node* CreateMissile();
 	void MoveCamera();
@@ -122,6 +125,8 @@ private:
 	int CTRL_LEFT = 4;
 	int CTRL_RIGHT = 8;
 	int CTRL_FIRE = 1024;
+	Vector<Node*> missiles;
+	std::vector<Node*> missileVector;
 	Vector3 clientDirection;
 	float clientYaw = 0;
 	float clientPitch = 0;

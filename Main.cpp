@@ -8,6 +8,7 @@ static const StringHash MISSILE_ID("MISSILEIDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_STARTGAME("StartGame");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
+static const StringHash E_HITBOID("HitBoid");
 
 // DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
 
@@ -45,10 +46,11 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, ClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, ClientReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
+	SubscribeToEvent(E_HITBOID, URHO3D_HANDLER(Main, HitBoid));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_HITBOID);
 
-	SubscribeToEvent(boidSet.boidList->node, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
 }
 
 void Main::CreateInitialScene()
@@ -64,10 +66,6 @@ void Main::CreateInitialScene()
 	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
 	cameraNode_->SetPosition(Vector3(30.0f, 40.0f, 0.0f));
 	cam->SetFarClip(1000.0f);
-	//CollisionShape* camCollider_ = cameraNode_->CreateComponent<CollisionShape>();
-	//RigidBody* cameraRB = cameraNode_->CreateComponent<RigidBody>();
-	//camCollider_->SetBox(Vector3::ONE);
-	//cameraRB->SetCollisionLayer(2);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
 
@@ -337,9 +335,19 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
 {
 	printf("Collision detected\n");
+	unsigned missileID = eventData[MISSILE_ID].GetUInt();
+	std::cout << "MISSILE ID OF COLLISION: " << missileID << std::endl;
+
 	score += 10;
 	std::cout << score << std::endl;
+}
 
+void Main::ProcessCollisions()
+{
+	for (int i = 0; i < 100; i++)
+	{
+
+	}
 }
 
 //
@@ -530,8 +538,15 @@ void Main::PhysicsPreStep(StringHash eventType, VariantMap & eventData)
 // Handle a client that has finished loading // SERVER FUNCTION
 void Main::ClientFinishedLoading(StringHash eventType, VariantMap & eventData)
 {
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Graphics* graphics = GetSubsystem<Graphics>();
 	// This function is useful for initing objects after the client has loaded.
 	Log::WriteRaw("A client has completed loading!");
+
+	for (int i = 0; i < 50; i++)
+	{
+		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+	}
 }
 
 // Client is ready to start, establish a new connection and create a new client controlled object // CLIENT FUNCTION
@@ -601,18 +616,34 @@ void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap cli
 	if (timer <= 0)
 	{
 		Node* newNode = CreateMissile();
+		missileVector.emplace_back(newNode);
+		std::cout << missileVector.size() << std::endl;
+
 		newNode->SetVar("ID", client);
 		Node* playerNode = serverObjects[playerConnection];
 		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
 
 		SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
+
+		VariantMap remoteEventData;
+		remoteEventData[MISSILE_ID] = newNode->GetID();
+
 		if (newNode->GetVar("ID") == client) // Detecting which missile belongs to which client
 		{
-			//playerConnection->SendEvent()
+			playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
 		}
 		timer = 3;
 	}
+}
+
+// When a boid is hit server reports back to the client and update the score UI // CLIENT FUNCTION
+void Main::HitBoid(StringHash eventType, VariantMap & eventData)
+{
+	printf("YOU FIRED A MISSILE\n");
+	unsigned value = eventData[MISSILE_ID].GetUInt();
+	std::cout << value << std::endl;
+	// Update client UI ?
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
@@ -634,7 +665,7 @@ void Main::MoveCamera()
 void Main::ServerToClientObjectID(StringHash eventType, VariantMap & eventData)
 {
 	clientObjectID = eventData[PLAYER_ID].GetUInt();
-	Log::WriteRaw("Client ID : %i \n", clientObjectID);
+	std::cout << "Client Player ID: " << clientObjectID << std::endl;
 }
 
 // Process controls from clients // SERVER FUNCTION

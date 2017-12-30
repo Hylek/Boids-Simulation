@@ -39,7 +39,7 @@
 
 using namespace Urho3D;
 
-const short int NUM_BOIDS = 100;
+static const short int NUM_BOIDS = 100;
 
 namespace Urho3D
 {

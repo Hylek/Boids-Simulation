@@ -12,6 +12,7 @@ Particles::~Particles()
 
 void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
 {
+	// Urho3D Sample Project 24
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/bubble.png");
 
 	if (!sprite) return;
