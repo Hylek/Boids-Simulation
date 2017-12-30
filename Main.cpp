@@ -7,6 +7,8 @@ static const StringHash PLAYER_ID("IDENTITY");
 static const StringHash MISSILE_ID("MISSILEIDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_STARTGAME("StartGame");
+static const StringHash E_SCOREUPDATE("ScoreUpdate");
+static const StringHash CLIENT_SCORE("ClientScores");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
 static const StringHash E_HITBOID("HitBoid");
 
@@ -34,7 +36,6 @@ void Main::Start()
 	CreateGameMenu(cache, context_, ui);
 	isServer = false;
 	hasGameStarted = false;
-	score = 0;
 }
 
 void Main::SubscribeToEvents()
@@ -47,9 +48,11 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, ClientReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
 	SubscribeToEvent(E_HITBOID, URHO3D_HANDLER(Main, HitBoid));
+	SubscribeToEvent(E_SCOREUPDATE, URHO3D_HANDLER(Main, UpdateClientScore));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_HITBOID);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_SCOREUPDATE);
 
 }
 
@@ -338,16 +341,6 @@ void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
 	unsigned missileID = eventData[MISSILE_ID].GetUInt();
 	std::cout << "MISSILE ID OF COLLISION: " << missileID << std::endl;
 
-	score += 10;
-	std::cout << score << std::endl;
-}
-
-void Main::ProcessCollisions()
-{
-	for (int i = 0; i < 100; i++)
-	{
-
-	}
 }
 
 //
@@ -461,6 +454,8 @@ void Main::ClientConnected(StringHash eventType, VariantMap & eventData)
 	Log::WriteRaw("*HANDLECONNECTEDCLIENT CALLED: A client has connected to the server");
 	using namespace ClientConnected;
 
+	score.push_back(0);
+
 	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
 	newConnection->SetScene(scene_);
 }
@@ -557,11 +552,11 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 	using namespace ClientConnected;
 	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
 
-	Node* newObject = CreatePlayer();
-	serverObjects[newConnection] = newObject;
+	Node* playerNode = CreatePlayer();
+	serverObjects[newConnection] = playerNode;
 
 	VariantMap remoteEventData;
-	remoteEventData[PLAYER_ID] = newObject->GetID();
+	remoteEventData[PLAYER_ID] = playerNode->GetID();
 	newConnection->SendRemoteEvent(E_CLIENTOBJECTAUTHORITY, true, remoteEventData);
 }
 
@@ -572,7 +567,7 @@ Node* Main::CreatePlayer()
 
 	Node* playerNode = scene_->CreateChild("Player");
 	playerNode->SetPosition(cameraNode_->GetPosition());
-	playerNode->SetScale(2.5f);
+	playerNode->SetScale(1);
 	StaticModel* ballObject = playerNode->CreateComponent<StaticModel>();
 	ballObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	ballObject->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
@@ -595,7 +590,7 @@ Node* Main::CreateMissile()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* node = scene_->CreateChild("Missile");
-	node->SetScale(Vector3(15.0f, 15.0f, 15.0f));
+	node->SetScale(Vector3(5.0f, 5.0f, 5.0f));
 	RigidBody* rb = node->CreateComponent<RigidBody>();
 	StaticModel* model = node->CreateComponent<StaticModel>();
 	CollisionShape* collider = node->CreateComponent<CollisionShape>();
@@ -604,6 +599,7 @@ Node* Main::CreateMissile()
 	collider->SetBox(Vector3::ONE);
 	rb->SetCollisionLayer(2);
 	rb->SetCollisionMask(4);
+	rb->SetCollisionMask(6);
 	rb->SetUseGravity(false);
 	rb->SetMass(5.0f);
 
@@ -619,8 +615,8 @@ void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap cli
 		missileVector.emplace_back(newNode);
 		std::cout << missileVector.size() << std::endl;
 
-		newNode->SetVar("ID", client);
 		Node* playerNode = serverObjects[playerConnection];
+		newNode->SetVar("ID", playerConnection->GetIdentity());
 		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
 
@@ -634,23 +630,41 @@ void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap cli
 			playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
 		}
 		timer = 3;
-
-		//Ray cameraRay(newNode->GetPosition(), newNode->GetWorldDirection() * Vector3::FORWARD * 100.0f);
-		//PhysicsRaycastResult result;
-		//scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 12.0, 15.0, 4);
-		//if (result.body_)
-		//{
-		//	Component* model = result.body_->GetComponent<StaticModel>();
-		//	Node* boid = model->GetNode();
-
-		//	if (boid->GetName() == "Boid")
-		//	{
-		//		// Add score
-		//		boid->SetEnabled(false);
-		//		std::cout << "MISSILE HIT A BOID" << std::endl;
-		//	}
-		//}
 	}
+}
+
+// Process the collisions for the missiles // SERVER FUNCTION
+void Main::ProcessCollisions(Connection* connection)
+{
+	for (int j = 0; j < missileVector.size(); j++)
+	{
+		Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
+		PhysicsRaycastResult result;
+		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 2, 3, 4);
+		if (result.body_)
+		{
+			Node* boid = result.body_->GetNode();
+
+			if (boid->GetName() == "Boid") // Update this for any future boids
+			{
+				boid->SetEnabled(false);
+				missileVector[j]->SetEnabled(false);
+				missileVector[j]->GetComponent<RigidBody>()->SetEnabled(false);
+				std::cout << "MISSILE HIT A BOID" << std::endl;
+
+				VariantMap remoteEventData;
+				remoteEventData[CLIENT_SCORE];
+				connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
+			}
+		}
+	}
+}
+
+// Client recieves it's score from the server // CLIENT FUNCTION
+void Main::UpdateClientScore(StringHash eventType, VariantMap & eventData)
+{
+	int score = eventData[CLIENT_SCORE].GetInt();
+	std::cout << "CLIENT SCORE IS: " << score << std::endl;
 }
 
 // When a boid is hit server reports back to the client and update the score UI // CLIENT FUNCTION
@@ -659,7 +673,6 @@ void Main::HitBoid(StringHash eventType, VariantMap & eventData)
 	printf("YOU FIRED A MISSILE\n");
 	unsigned value = eventData[MISSILE_ID].GetUInt();
 	std::cout << value << std::endl;
-	// Update client UI ?
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION
@@ -711,24 +724,7 @@ void Main::ProcessClientControls()
 		if (controls.buttons_ & 16) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 10.0f);
 		if (controls.buttons_ & 32) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 10.0f);
 
-		for (int j = 0; j < missileVector.size(); j++)
-		{
-			Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetPosition() + missileVector[j]->GetRotation() * Vector3::FORWARD * 100.0f);
-			PhysicsRaycastResult result;
-			scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 10, 10, 4);
-			if (result.body_)
-			{
-				Node* boid = result.body_->GetNode();
-
-				if (boid->GetName() == "Boid")
-				{
-					// Add score
-					boid->SetEnabled(false);
-					missileVector[j]->SetEnabled(false);
-					std::cout << "MISSILE HIT A BOID" << std::endl;
-				}
-			}
-		}
+		ProcessCollisions(connection);
 	}
 }
 

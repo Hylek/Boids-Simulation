@@ -109,11 +109,12 @@ private:
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
+	void UpdateClientScore(StringHash eventType, VariantMap & eventData);
 	void ClientRequestFireMissile(StringHash eventType, VariantMap & eventData);
 	void HitBoid(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
 	void ShootMissile(Connection* playerConnection, unsigned i, VariantMap client);
-	void ProcessCollisions();
+	void ProcessCollisions(Connection* connection);
 	Node* CreatePlayer();
 	Node* CreateMissile();
 	void MoveCamera();
@@ -127,10 +128,11 @@ private:
 	int CTRL_FIRE = 1024;
 	Vector<Node*> missiles;
 	std::vector<Node*> missileVector;
+	std::vector<int> score;
+	int newScore = 0;
 	Vector3 clientDirection;
 	float clientYaw = 0;
 	float clientPitch = 0;
-	float score;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
 
