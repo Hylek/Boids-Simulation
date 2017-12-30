@@ -14,6 +14,7 @@ static const StringHash E_SPAWNPLAYER("SpawnPlayer");
 static const StringHash E_HITBOID("HitBoid");
 static const StringHash E_GAMEOVER("GameOver");
 static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
+static const StringHash E_PLAYERSREADY("PlayersAreReady");
 
 // DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
 
@@ -58,12 +59,14 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_SCOREUPDATE, URHO3D_HANDLER(Main, UpdateClientScore));
 	SubscribeToEvent(E_GAMEOVER, URHO3D_HANDLER(Main, GameOver));
 	SubscribeToEvent(E_WAITINGONPLAYERS, URHO3D_HANDLER(Main, ServerWaitingOnMorePlayers));
+	SubscribeToEvent(E_PLAYERSREADY, URHO3D_HANDLER(Main, PlayersAreReadyToStart));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_HITBOID);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_SCOREUPDATE);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_GAMEOVER);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
+	GetSubsystem<Network>()->RegisterRemoteEvent(E_PLAYERSREADY);
 
 }
 
@@ -342,6 +345,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 			text->SetVisible(true);
 			// GAME OVER
 		}
+		if (clientCount < 2)
+		{
+			gameTimer = 60;
+		}
 	}
 	bubbles.Update(timeStep);
 
@@ -508,6 +515,7 @@ void Main::Disconnect(StringHash eventType, VariantMap& eventData)
 		disconnectButton->SetVisible(false);
 		startServerButton->SetVisible(true);
 		connectButton->SetVisible(true);
+		text->SetVisible(false);
 	}
 	// If Running as a server, stop the server
 	else if (network->IsServerRunning())
@@ -521,6 +529,7 @@ void Main::Disconnect(StringHash eventType, VariantMap& eventData)
 		startServerButton->SetVisible(true);
 		disconnectButton->SetVisible(false);
 		serverAddressEdit->SetVisible(true);
+		text->SetVisible(false);
 	}
 	connectButton->SetVisible(true);
 }
@@ -614,6 +623,7 @@ void Main::GameOver(StringHash eventType, VariantMap & eventData)
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	UI* ui = GetSubsystem<UI>();
 
+	text->SetVisible(true);
 	// Construct new Text object, set string to display and font to use
 	text->SetText("THE GAME IS NOW OVER!");
 	text->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
@@ -729,6 +739,7 @@ void Main::ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventDa
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	UI* ui = GetSubsystem<UI>();
 
+	text->SetVisible(true);
 	// Construct new Text object, set string to display and font to use
 	text->SetText("Waiting on one more player!");
 	text->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
@@ -737,6 +748,12 @@ void Main::ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventDa
 	text->SetHorizontalAlignment(HA_CENTER);
 	text->SetVerticalAlignment(VA_CENTER);
 	text->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
+}
+
+// There are enough players to start the game, hide the text // SERVER FUNCTION
+void Main::PlayersAreReadyToStart(StringHash eventType, VariantMap & eventData)
+{
+	text->SetVisible(false);
 }
 
 // Client recieves it's score from the server // CLIENT FUNCTION
@@ -815,6 +832,8 @@ void Main::ProcessClientControls()
 		if (clientCount >= 2)
 		{
 			ProcessCollisions(connection);
+			VariantMap remoteEventData;
+			network->BroadcastRemoteEvent(E_PLAYERSREADY, true, remoteEventData);
 		}
 
 		if (gameTimer <= 0)

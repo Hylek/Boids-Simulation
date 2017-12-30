@@ -107,6 +107,7 @@ private:
 	void Disconnect(StringHash eventType, VariantMap& eventData);
 	void ClientConnected(StringHash eventType, VariantMap & eventData);
 	void ClientDisconnecting(StringHash eventType, VariantMap & eventData);
+	void PlayersAreReadyToStart(StringHash eventType, VariantMap & eventData);
 	void HandleCollision(StringHash eventType, VariantMap& eventData);
 	void ClientStartGame(StringHash eventType, VariantMap& eventData);
 	void GameOver(StringHash eventType, VariantMap & eventData);
