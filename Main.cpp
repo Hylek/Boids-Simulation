@@ -711,18 +711,22 @@ void Main::ProcessClientControls()
 		if (controls.buttons_ & 16) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 10.0f);
 		if (controls.buttons_ & 32) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 10.0f);
 
-		Ray cameraRay(playerNode->GetPosition(), playerNode->GetPosition() + playerNode->GetRotation() * Vector3::FORWARD * 100.0f);
-		PhysicsRaycastResult result;
-		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 10, 10, 4);
-		if (result.body_)
+		for (int j = 0; j < missileVector.size(); j++)
 		{
-			Node* boid = result.body_->GetNode();
-
-			if (boid->GetName() == "Boid")
+			Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetPosition() + missileVector[j]->GetRotation() * Vector3::FORWARD * 100.0f);
+			PhysicsRaycastResult result;
+			scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 10, 10, 4);
+			if (result.body_)
 			{
-				// Add score
-				boid->SetEnabled(false);
-				std::cout << "MISSILE HIT A BOID" << std::endl;
+				Node* boid = result.body_->GetNode();
+
+				if (boid->GetName() == "Boid")
+				{
+					// Add score
+					boid->SetEnabled(false);
+					missileVector[j]->SetEnabled(false);
+					std::cout << "MISSILE HIT A BOID" << std::endl;
+				}
 			}
 		}
 	}
