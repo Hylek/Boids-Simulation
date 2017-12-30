@@ -39,6 +39,7 @@
 #include <Urho3D/Urho2D/Sprite2D.h>
 #include <iostream>
 #include <vector>
+#include <string> 
 
 #include "Sample.h"
 #include "Boid.h"
@@ -97,6 +98,8 @@ private:
 	static const unsigned short SERVER_PORT = 2345;
 	float clientCount = 0;
 	float clientStarted = 0;
+	bool isGameOver = false;
+	float resetTimer = 10;
 	Text* text;
 	float moveLeft = 1.0f;
 	float gameTimer = 0;
@@ -110,6 +113,7 @@ private:
 	void PlayersAreReadyToStart(StringHash eventType, VariantMap & eventData);
 	void HandleCollision(StringHash eventType, VariantMap& eventData);
 	void ClientStartGame(StringHash eventType, VariantMap& eventData);
+	void RestartScene(StringHash eventType, VariantMap& eventData);
 	void GameOver(StringHash eventType, VariantMap & eventData);
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);

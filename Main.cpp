@@ -15,6 +15,8 @@ static const StringHash E_HITBOID("HitBoid");
 static const StringHash E_GAMEOVER("GameOver");
 static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 static const StringHash E_PLAYERSREADY("PlayersAreReady");
+static const StringHash E_RESETGAME("ResetGame");
+
 
 // DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
 
@@ -60,6 +62,7 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_GAMEOVER, URHO3D_HANDLER(Main, GameOver));
 	SubscribeToEvent(E_WAITINGONPLAYERS, URHO3D_HANDLER(Main, ServerWaitingOnMorePlayers));
 	SubscribeToEvent(E_PLAYERSREADY, URHO3D_HANDLER(Main, PlayersAreReadyToStart));
+	//SubscribeToEvent(E_RESETGAME, URHO3D_HANDLER(Main, RestartScene));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_HITBOID);
@@ -67,6 +70,7 @@ void Main::SubscribeToEvents()
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_GAMEOVER);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_PLAYERSREADY);
+	//GetSubsystem<Network>()->RegisterRemoteEvent(E_RESETGAME);
 
 }
 
@@ -349,7 +353,13 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			gameTimer = 60;
 		}
+		if (isGameOver && resetTimer > 0)
+		{
+			resetTimer -= timeStep;
+		}
 	}
+
+
 	bubbles.Update(timeStep);
 
 }
@@ -723,7 +733,6 @@ void Main::ProcessCollisions(Connection* connection)
 				boid->SetEnabled(false);
 				missileVector[j]->SetEnabled(false);
 				missileVector[j]->GetComponent<RigidBody>()->SetEnabled(false);
-				std::cout << "MISSILE HIT A BOID" << std::endl;
 
 				VariantMap remoteEventData;
 				remoteEventData[CLIENT_SCORE];
@@ -761,6 +770,21 @@ void Main::UpdateClientScore(StringHash eventType, VariantMap & eventData)
 {
 	int score = eventData[CLIENT_SCORE].GetInt();
 	std::cout << "CLIENT SCORE IS: " << score << std::endl;
+	std::string scoreString = std::to_string(score);
+
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	UI* ui = GetSubsystem<UI>();
+
+	Text* textScore = ui->GetRoot()->CreateChild<Text>();
+	// Construct new Text object, set string to display and font to use
+	textScore->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
+
+	// Position the text relative to the screen center
+	textScore->SetHorizontalAlignment(HA_CENTER);
+	textScore->SetVerticalAlignment(VA_CENTER);
+	textScore->SetPosition(0, ui->GetRoot()->GetHeight() * 6);
+
+
 }
 
 // When a boid is hit server reports back to the client and update the score UI // CLIENT FUNCTION
@@ -835,11 +859,14 @@ void Main::ProcessClientControls()
 			VariantMap remoteEventData;
 			network->BroadcastRemoteEvent(E_PLAYERSREADY, true, remoteEventData);
 		}
-
+		VariantMap remoteEventData;
 		if (gameTimer <= 0)
 		{
-			VariantMap remoteEventData;
+			isGameOver = true;
 			network->BroadcastRemoteEvent(E_GAMEOVER, true, remoteEventData);
+		}
+		if (resetTimer <= 0)
+		{
 		}
 	}
 }
