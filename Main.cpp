@@ -403,7 +403,7 @@ void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
 
 Button* Main::CreateButton(const String & text, int pHeight, Urho3D::Window * whichWindow, ResourceCache* cache)
 {
-	Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
+	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
 	Button* button = whichWindow->CreateChild<Button>();
 	button->SetMinHeight(pHeight);
 	button->SetStyleAuto();
@@ -592,7 +592,7 @@ void Main::GameOver(StringHash eventType, VariantMap & eventData)
 
 	// Construct new Text object, set string to display and font to use
 	text->SetText("THE GAME IS NOW OVER!");
-	text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+	text->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
 
 	// Position the text relative to the screen center
 	text->SetHorizontalAlignment(HA_CENTER);
@@ -698,6 +698,7 @@ void Main::ProcessCollisions(Connection* connection)
 	}
 }
 
+// When there is only 1 client ready, wait for another to start the game // SERVER FUNCTION
 void Main::ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventData)
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
@@ -705,7 +706,7 @@ void Main::ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventDa
 
 	// Construct new Text object, set string to display and font to use
 	text->SetText("Waiting on one more player!");
-	text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+	text->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
 
 	// Position the text relative to the screen center
 	text->SetHorizontalAlignment(HA_CENTER);
