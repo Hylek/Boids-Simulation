@@ -40,6 +40,9 @@ void Main::Start()
 	isServer = false;
 	hasGameStarted = false;
 	text = ui->GetRoot()->CreateChild<Text>();
+
+	disconnectButton->SetVisible(false);
+	clientStartGame->SetVisible(false);
 }
 
 void Main::SubscribeToEvents()
@@ -330,11 +333,13 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		if (gameTimer > 0 && clientCount >= 2)
 		{
 			gameTimer -= timeStep;
+			text->SetVisible(false);
 			std::cout << gameTimer << std::endl;
 		}
 		if (gameTimer <= 0)
 		{
 			std::cout << "GAME OVER" << std::endl;
+			text->SetVisible(true);
 			// GAME OVER
 		}
 	}
@@ -445,6 +450,10 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 	isMenuVisible = !isMenuVisible;
 	gameTimer = 60;
 	isServer = true;
+	connectButton->SetVisible(false);
+	disconnectButton->SetVisible(true);
+	startServerButton->SetVisible(false);
+	serverAddressEdit->SetVisible(false);
 }
 
 // Connect a client to the server in SPECTATOR MODE // CLIENT FUNCTION
@@ -463,6 +472,10 @@ void Main::Connect(StringHash eventType, VariantMap& eventData)
 	// Connect to the server and hide the menu.
 	network->Connect(address, SERVER_PORT, scene_);
 	isMenuVisible = !isMenuVisible;
+	connectButton->SetVisible(false);
+	startServerButton->SetVisible(false);
+	clientStartGame->SetVisible(true);
+	serverAddressEdit->SetVisible(false);
 }
 
 // When a client has connected, refresh the scene and create a new connection. // SERVER FUNCTION
@@ -491,6 +504,10 @@ void Main::Disconnect(StringHash eventType, VariantMap& eventData)
 		scene_->Clear(true, false);
 		hasGameStarted = false;
 		clientObjectID = 0;
+		serverAddressEdit->SetVisible(true);
+		disconnectButton->SetVisible(false);
+		startServerButton->SetVisible(true);
+		connectButton->SetVisible(true);
 	}
 	// If Running as a server, stop the server
 	else if (network->IsServerRunning())
@@ -501,7 +518,11 @@ void Main::Disconnect(StringHash eventType, VariantMap& eventData)
 		isServer = false;
 		hasGameStarted = false;
 		CreateInitialScene();
+		startServerButton->SetVisible(true);
+		disconnectButton->SetVisible(false);
+		serverAddressEdit->SetVisible(true);
 	}
+	connectButton->SetVisible(true);
 }
 
 // When the client is disconnecting, do stuff... // SERVER FUNCTION
@@ -534,6 +555,9 @@ void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 			isMenuVisible = !isMenuVisible;
 		}
 	}
+	clientStartGame->SetVisible(false);
+	disconnectButton->SetVisible(true);
+	serverAddressEdit->SetVisible(false);
 }
 
 // Handle the processing of controls by client and server // SERVER AND CLIENT FUNCTION
@@ -632,12 +656,13 @@ Node* Main::CreateMissile()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* node = scene_->CreateChild("Missile");
-	node->SetScale(Vector3(5.0f, 5.0f, 5.0f));
+	node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
 	RigidBody* rb = node->CreateComponent<RigidBody>();
 	StaticModel* model = node->CreateComponent<StaticModel>();
 	CollisionShape* collider = node->CreateComponent<CollisionShape>();
 
 	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
+	//model->SetMaterial(cache->GetResource<Material>("Materials/Missile.xml"));
 	collider->SetBox(Vector3::ONE);
 	rb->SetCollisionLayer(2);
 	rb->SetCollisionMask(4);
@@ -810,7 +835,7 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
-	controls.Set(CTRL_FIRE, input->GetMouseButtonPress(MOUSEB_LEFT));
+	controls.Set(CTRL_FIRE, input->GetKeyDown(KEY_E));
 	controls.Set(16, input->GetKeyDown(KEY_R));
 	controls.Set(32, input->GetKeyDown(KEY_F));
 
