@@ -9,6 +9,7 @@ static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_STARTGAME("StartGame");
 static const StringHash E_SCOREUPDATE("ScoreUpdate");
 static const StringHash CLIENT_SCORE("ClientScores");
+static const StringHash VAR_SCORE("Score");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
 static const StringHash E_HITBOID("HitBoid");
 
@@ -94,7 +95,7 @@ void Main::CreateInitialScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(-140.0f, /*17.7f*/40.0f, 50.0f));
+	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
 	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
@@ -181,7 +182,7 @@ void Main::CreateLocalScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(-140.0f, /*17.7f*/40.0f, 50.0f));
+	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
 	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
@@ -321,6 +322,15 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (isServer)
 	{
 		boidSet.Update(timeStep, &missile);
+
+		if (gameTimer > 0)
+		{
+			gameTimer -= timeStep;
+		}
+		if (gameTimer <= 0)
+		{
+			// GAME OVER
+		}
 	}
 	bubbles.Update(timeStep);
 
@@ -427,6 +437,7 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 	network->StartServer(SERVER_PORT);
 
 	isMenuVisible = !isMenuVisible;
+	gameTimer = 60;
 	isServer = true;
 }
 
@@ -567,16 +578,17 @@ Node* Main::CreatePlayer()
 
 	Node* playerNode = scene_->CreateChild("Player");
 	playerNode->SetPosition(cameraNode_->GetPosition());
-	playerNode->SetScale(1);
-	StaticModel* ballObject = playerNode->CreateComponent<StaticModel>();
-	ballObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	ballObject->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
+	playerNode->SetScale(0.5f);
+	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
+	StaticModel* model = playerNode->CreateComponent<StaticModel>();
+	model->SetModel(cache->GetResource<Model>("Models/Sub.mdl"));
+	model->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
 
 	RigidBody* body = playerNode->CreateComponent<RigidBody>();
 	body->SetLinearDamping(0.65f);
 	body->SetAngularDamping(0.65f);
 	body->SetCollisionMask(4);
-	body->SetMass(1.0f);
+	body->SetMass(5.0f);
 	body->SetUseGravity(false);
 	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
 	shape->SetBox(Vector3::ONE);
@@ -684,7 +696,7 @@ void Main::MoveCamera()
 		Node* playerNode = this->scene_->GetNode(clientObjectID);
 		if (playerNode)
 		{
-			const float CAMERA_DISTANCE = 10.0f;
+			const float CAMERA_DISTANCE = 20.0f;
 			cameraNode_->SetPosition(playerNode->GetPosition() + cameraNode_->GetRotation() * Vector3::BACK * CAMERA_DISTANCE);
 		}
 	}
@@ -716,13 +728,13 @@ void Main::ProcessClientControls()
 		Quaternion rotation(0.0f, controls.yaw_, 0.0f);
 		clientDirection = Vector3(0, 0, rotation.x_);
 
-		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 30.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 30.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 3.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+		if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
+		if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
+		if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 0.25f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
+		if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 0.25f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
 		if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); 
-		if (controls.buttons_ & 16) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 10.0f);
-		if (controls.buttons_ & 32) playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 10.0f);
+		if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
+		if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
 
 		ProcessCollisions(connection);
 	}

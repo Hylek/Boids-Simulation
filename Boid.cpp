@@ -1,11 +1,11 @@
 #include "Boid.h"
 
 float Boid::Range_FAttract = 30.0f;
-float Boid::Range_FRepel = 20.0f;
-float Boid::Range_FAlign = 5.0f;
+float Boid::Range_FRepel = 15.0f;
+float Boid::Range_FAlign = 30.0f;
 float Boid::Range_FMissileRepel = 4.0f;
 
-float Boid::FAttract_Vmax = 5.0f;
+float Boid::FAttract_Vmax = 8.0f;
 
 float Boid::FAttract_Factor = 15.0f;
 float Boid::FRepel_Factor = 12.0f;
@@ -25,19 +25,20 @@ Boid::~Boid()
 void Boid::Init(ResourceCache* cache, Scene* scene)
 {
 	node = scene->CreateChild("Boid");
-	node->SetScale(Vector3::ONE);
+	node->SetScale(0.1f);
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
 
-	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
+	model->SetModel(cache->GetResource<Model>("Models/Fish.mdl"));
+	model->SetMaterial(cache->GetResource<Material>("Materials/Fish.xml"));
 	model->SetCastShadows(true);
 	collider->SetCone(5.0f, 5.0f);
 	rb->SetUseGravity(false);
 	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
 	rb->SetMass(5.0f);
-	node->SetPosition(Vector3(Random(20.0f) - 40.0f, 30.0f, Random(20.0f) - 40.0f));
+	node->SetPosition(Vector3(Random(200.0f), Random(50.0f, 60.0f), Random(20.0f)));
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
@@ -190,26 +191,26 @@ void Boid::Update(float lastFrame)
 		p.y_ = 90.0f;
 		rb->SetPosition(p);
 	}
-	/* if (p.x_ < 10.0f)
+	if (p.x_ < -300.0f)
 	{
-	p.x_ = 10.0f;
+	p.x_ = -300.0f;
 	rb->SetPosition(p);
 	}
-	else if (p.x_ > 100.0f)
+	else if (p.x_ > 300.0f)
 	{
-	p.x_ = 100.0f;
+	p.x_ = 300.0f;
 	rb->SetPosition(p);
 	}
-	if (p.z_ < 10.0f)
+	if (p.z_ < -200.0f)
 	{
-	p.z_ = 10.0f;
+	p.z_ = -200.0f;
 	rb->SetPosition(p);
 	}
-	else if (p.z_ > 100.0f)
+	else if (p.z_ > 200.0f)
 	{
-	p.z_ = 100.0f;
+	p.z_ = 200.0f;
 	rb->SetPosition(p);
-	} */
+	}
 }
 
 BoidSet::BoidSet()

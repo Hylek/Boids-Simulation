@@ -96,6 +96,7 @@ private:
 	// Server code START
 	static const unsigned short SERVER_PORT = 2345;
 	float moveLeft = 1.0f;
+	float gameTimer = 0;
 	HashMap<Connection*, WeakPtr<Node> > serverObjects; // Variable to keep track of client controlled server objects.
 	unsigned clientObjectID = 0; // ID of client objects present on the server
 	void StartServer(StringHash eventType, VariantMap& eventData);
