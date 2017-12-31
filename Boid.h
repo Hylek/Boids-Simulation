@@ -35,6 +35,9 @@
 #include <Urho3D/Network/Network.h>
 #include <Urho3D/Network/NetworkEvents.h>
 
+#include <iostream>
+#include <vector>
+
 #include "Missile.h"
 
 using namespace Urho3D;
@@ -77,6 +80,10 @@ public:
 	RigidBody* rb;
 	CollisionShape* collider;
 	StaticModel* model;
+
+	// OPTIMISATION CODE VARIABLES
+
+
 };
 
 class BoidSet : public Boid
@@ -90,4 +97,8 @@ public:
 
 	void Init(ResourceCache *pRes, Scene* scene);
 	void Update(float tm, Missile* missile);
+
+	std::vector<HashMap<Node*, int>> specialGrid; // ;)
+	HashMap<Node*, int> specialCell; // ;)
+
 };

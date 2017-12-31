@@ -38,8 +38,8 @@ void Boid::Init(ResourceCache* cache, Scene* scene)
 	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
 	rb->SetMass(2.0f);
-	node->SetPosition(Vector3(Random(200.0f), Random(50.0f, 60.0f), Random(80.0f)));
-	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
+	node->SetPosition(Vector3(Random(200.0f), Random(50.0f, 60.0f), Random(/*80.0f*/200.0f)));
+
 }
 
 void Boid::ComputeForce(Boid * boid, Missile * missile)
@@ -229,6 +229,7 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 	{
 		boidList[i].Init(pRes, scene);
 	}
+
 }
 
 void BoidSet::Update(float tm, Missile* missile)

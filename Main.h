@@ -138,7 +138,7 @@ private:
 	int CTRL_LEFT = 4;
 	int CTRL_RIGHT = 8;
 	int CTRL_FIRE = 1024;
-	Vector<Node*> missiles;
+	HashMap<Node*, unsigned> missiles;
 	std::vector<Node*> missileVector;
 	std::vector<int> score;
 	int newScore = 0;

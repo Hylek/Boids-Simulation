@@ -734,6 +734,7 @@ void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 		//std::cout << missileVector.size() << std::endl;
 
 		Node* playerNode = serverObjects[playerConnection];
+		missiles[newNode] = playerNode->GetID();
 		newNode->SetVar("ID", playerNode);
 		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
@@ -763,11 +764,12 @@ void Main::ProcessCollisions(Connection* connection)
 	{
 		Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
 		PhysicsRaycastResult result;
-		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 2, 3, 4);
-		if (result.body_)
+		std::vector<PhysicsRaycastResult> results;
+		results.push_back(result);
+		scene_->GetComponent<PhysicsWorld>()->SphereCast(results.back(), cameraRay, 2, 3, 4);
+		if (results.back().body_)
 		{
-			Node* boid = result.body_->GetNode();
-
+			Node* boid = results.back().body_->GetNode();
 			if (boid->GetName() == "Boid") // Update this for any future boids
 			{
 				boid->SetEnabled(false);
@@ -785,7 +787,7 @@ void Main::ProcessCollisions(Connection* connection)
 					remoteEventData[CLIENT_SCORE] = playerNode->GetVar("Score");
 					connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
 				}
-				
+				results.pop_back();
 			}
 		}
 	}
