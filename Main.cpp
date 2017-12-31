@@ -94,8 +94,8 @@ void Main::CreateInitialScene()
 	Zone* zone = zoneNode->CreateComponent<Zone>();
 	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
 	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
-	zone->SetFogStart(100.0f);
-	zone->SetFogEnd(1000.0f);
+	zone->SetFogStart(60.0f);
+	zone->SetFogEnd(300.0f);
 	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
 
 	// Creating a directional light
