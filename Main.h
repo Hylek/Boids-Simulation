@@ -88,6 +88,7 @@ private:
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
 	SharedPtr<Window> window;
+	Text* textScore;
 
 	void CreateGameMenu(ResourceCache* cache, Context* context, UI* ui);
 	void HandleQuit(StringHash eventType, VariantMap& eventData);
@@ -99,6 +100,7 @@ private:
 	static const unsigned short SERVER_PORT = 2345;
 	float clientCount = 0;
 	float clientStarted = 0;
+	float playerTimer = 0;
 	bool isGameOver = false;
 	float resetTimer = 10;
 	Text* text;
@@ -123,7 +125,7 @@ private:
 	void UpdateClientScore(StringHash eventType, VariantMap & eventData);
 	void HitBoid(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
-	void ShootMissile(Connection* playerConnection, unsigned i, VariantMap client);
+	void ShootMissile(Connection* playerConnection, Node* client);
 	void ProcessCollisions(Connection* connection);
 	Node* CreatePlayer();
 	Node* CreateMissile();

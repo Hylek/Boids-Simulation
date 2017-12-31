@@ -243,17 +243,11 @@ void Main::CreateLocalScene()
 void Main::AddObjects()
 {
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
-	Graphics* graphics = GetSubsystem<Graphics>();
 
 	// Create objects
 	boidSet.Init(cache, scene_);
 
 	missile.CreateMissile(cache, scene_);
-
-	for (int i = 0; i < 100; i++)
-	{
-		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
-	}
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -362,6 +356,31 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			resetTimer -= timeStep;
 		}
+
+		Network* network = GetSubsystem<Network>();
+		const Vector<SharedPtr<Connection> >& connections = network->GetClientConnections();
+		for (unsigned i = 0; i < connections.Size(); ++i)
+		{
+			Connection* connection = connections[i];
+			Node* playerNode = serverObjects[connection];
+
+			if (!playerNode) continue; // If the current client doesn't have a player object, keeping looping!
+
+			if (playerNode->GetVar("Timer").GetFloat() > 0)
+			{
+				if (playerTimer <= 0 && playerNode->GetVar("Timer").GetFloat() > 0)
+				{
+					playerTimer = playerNode->GetVar("Timer").GetFloat();
+				}
+				playerTimer -= timeStep;
+				std::cout << playerTimer << std::endl;
+				if (playerTimer <= 0)
+				{
+					playerNode->SetVar("Timer", 0);
+				}
+			}
+
+		}
 	}
 	bubbles.Update(timeStep);
 }
@@ -377,9 +396,9 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 
 void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
 {
-	printf("Collision detected\n");
+	//printf("Collision detected\n");
 	unsigned missileID = eventData[MISSILE_ID].GetUInt();
-	std::cout << "MISSILE ID OF COLLISION: " << missileID << std::endl;
+	//std::cout << "MISSILE ID OF COLLISION: " << missileID << std::endl;
 
 }
 
@@ -563,6 +582,7 @@ void Main::ClientDisconnecting(StringHash eventType, VariantMap & eventData)
 // Add the client into the game when the player presses Start Game // CLIENT FUNCTION
 void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 {
+	UI* ui = GetSubsystem<UI>();
 	Log::WriteRaw("The client is starting the a new game");
 	if (clientObjectID == 0)
 	{
@@ -587,6 +607,12 @@ void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 	{
 		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
 	}
+
+	textScore = ui->GetRoot()->CreateChild<Text>();
+	textScore->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
+	textScore->SetHorizontalAlignment(HA_CENTER);
+	textScore->SetVerticalAlignment(VA_CENTER);
+	textScore->SetPosition(0, ui->GetRoot()->GetHeight() / 1.5f);
 }
 
 // Handle the processing of controls by client and server // SERVER AND CLIENT FUNCTION
@@ -654,6 +680,7 @@ Node* Main::CreatePlayer()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* playerNode = scene_->CreateChild("Player");
+
 	playerNode->SetPosition(cameraNode_->GetPosition());
 	playerNode->SetScale(0.5f);
 	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
@@ -680,7 +707,7 @@ Node* Main::CreateMissile()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* node = scene_->CreateChild("Missile");
-	node->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+	node->SetScale(Vector3(1.5f, 1.5f, 1.5f));
 	RigidBody* rb = node->CreateComponent<RigidBody>();
 	StaticModel* model = node->CreateComponent<StaticModel>();
 	CollisionShape* collider = node->CreateComponent<CollisionShape>();
@@ -698,36 +725,45 @@ Node* Main::CreateMissile()
 }
 
 // Client has requested a missile, create one and fire it. // SERVER FUNCTION
-void Main::ShootMissile(Connection* playerConnection, unsigned i, VariantMap client)
+void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 {
-	Node* newNode = CreateMissile();
-	missileVector.emplace_back(newNode);
-	std::cout << missileVector.size() << std::endl;
-
-	Node* playerNode = serverObjects[playerConnection];
-	newNode->SetVar("ID", playerConnection->GetIdentity());
-	newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
-	newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
-
-	SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
-
-	VariantMap remoteEventData;
-	remoteEventData[MISSILE_ID] = newNode->GetID();
-
-	if (newNode->GetVar("ID") == client) // Detecting which missile belongs to which client
+	if (playerObject->GetVar("Timer").GetFloat() <= 0)
 	{
-		playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
+		Node* newNode = CreateMissile();
+		missileVector.push_back(newNode);
+		//std::cout << missileVector.size() << std::endl;
+
+		Node* playerNode = serverObjects[playerConnection];
+		newNode->SetVar("ID", playerNode);
+		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
+		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
+
+		SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
+
+		VariantMap remoteEventData;
+		remoteEventData[MISSILE_ID] = newNode->GetID();
+
+		if (newNode->GetVar("ID") == playerNode) // Detecting which missile belongs to which client
+		{
+			playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
+		}
+		if (playerNode->GetVar("Timer").GetFloat() <= 0)
+		{
+			playerNode->SetVar("Timer", 1);
+			std::cout << "Timer set" << std::endl;
+		}
 	}
 }
 
 // Process the collisions for the missiles // SERVER FUNCTION
 void Main::ProcessCollisions(Connection* connection)
 {
-	for (int j = 0; j < missileVector.size(); j++)
+	Node* playerNode = serverObjects[connection];
+	for (unsigned j = 0; j < missileVector.size(); j++)
 	{
 		Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
 		PhysicsRaycastResult result;
-		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 5, 5, 4);
+		scene_->GetComponent<PhysicsWorld>()->SphereCast(result, cameraRay, 2, 3, 4);
 		if (result.body_)
 		{
 			Node* boid = result.body_->GetNode();
@@ -738,9 +774,18 @@ void Main::ProcessCollisions(Connection* connection)
 				missileVector[j]->SetEnabled(false);
 				missileVector[j]->GetComponent<RigidBody>()->SetEnabled(false);
 
-				VariantMap remoteEventData;
-				remoteEventData[CLIENT_SCORE];
-				connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
+				if (missileVector[j]->GetVar("ID") == playerNode)
+				{
+					VariantMap remoteEventData;
+					Variant score = playerNode->GetVar("Score");
+					int currentScore = score.GetInt();
+					currentScore += 10;
+					playerNode->SetVar("Score", currentScore);
+					currentScore = 0;
+					remoteEventData[CLIENT_SCORE] = playerNode->GetVar("Score");
+					connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
+				}
+				
 			}
 		}
 	}
@@ -779,22 +824,13 @@ void Main::UpdateClientScore(StringHash eventType, VariantMap & eventData)
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	UI* ui = GetSubsystem<UI>();
 
-	Text* textScore = ui->GetRoot()->CreateChild<Text>();
-	// Construct new Text object, set string to display and font to use
-	textScore->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
-
-	// Position the text relative to the screen center
-	textScore->SetHorizontalAlignment(HA_CENTER);
-	textScore->SetVerticalAlignment(VA_CENTER);
-	textScore->SetPosition(0, ui->GetRoot()->GetHeight() * 6);
-
-
+	textScore->SetText("SCORE: " + score);
 }
 
 // When a boid is hit server reports back to the client and update the score UI // CLIENT FUNCTION
 void Main::HitBoid(StringHash eventType, VariantMap & eventData)
 {
-	printf("YOU FIRED A MISSILE\n");
+	//printf("YOU FIRED A MISSILE\n");
 	unsigned value = eventData[MISSILE_ID].GetUInt();
 	std::cout << value << std::endl;
 }
@@ -839,10 +875,10 @@ void Main::ProcessClientControls()
 	{
 		Connection* connection = connections[i];
 		Node* playerNode = serverObjects[connection];
+
+		if (!playerNode) continue; // If the current client doesn't have a player object, keeping looping!
+
 		VariantMap client = connection->GetIdentity();
-
-		if (!playerNode) continue;
-
 		const Controls& controls = connection->GetControls();
 		Quaternion rotation(0.0f, controls.yaw_, 0.0f);
 		clientDirection = Vector3(0, 0, rotation.x_);
@@ -853,7 +889,7 @@ void Main::ProcessClientControls()
 			if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
 			if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
 			if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); // Maybe add something to do with ID shit here?
+			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, playerNode);
 			if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
 			if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
 		}

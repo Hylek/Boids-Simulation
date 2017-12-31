@@ -65,7 +65,6 @@ public:
 	~Boid();
 
 	void Init(ResourceCache* cache, Scene* scene);
-	void GetNode();
 	void ComputeForce(Boid* boid, Missile* missile);
 	Vector3 Attract(Boid* boid);
 	Vector3 Align(Boid* boid);
