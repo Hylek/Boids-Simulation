@@ -21,7 +21,7 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, flo
 	{
 		float scaleAmount = Random(0.2f);
 		SharedPtr<Node> spriteNode(scene->CreateChild("Bubble", LOCAL));
-		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(-50.0f), zPos));
+		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(-100.0f), zPos));
 		spriteNode->SetRotation(Quaternion(0.0f, Random(0.0f, 360.0f), 0.0f));
 		spriteNode->SetScale(Vector3(scaleAmount, scaleAmount, scaleAmount));
 

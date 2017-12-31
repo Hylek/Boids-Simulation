@@ -25,26 +25,26 @@ Boid::~Boid()
 void Boid::Init(ResourceCache* cache, Scene* scene)
 {
 	node = scene->CreateChild("Boid");
-	node->SetScale(0.1f);
+	node->SetScale(Random(0.5f, 1.15f));
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
 
-	model->SetModel(cache->GetResource<Model>("Models/Fish.mdl"));
+	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
 	model->SetMaterial(cache->GetResource<Material>("Materials/Fish.xml"));
 	model->SetCastShadows(true);
-	collider->SetCone(5.0f, 5.0f);
+	collider->SetBox(Vector3::ONE);
 	rb->SetUseGravity(false);
 	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
-	rb->SetMass(5.0f);
-	node->SetPosition(Vector3(Random(200.0f), Random(50.0f, 60.0f), Random(20.0f)));
+	rb->SetMass(2.0f);
+	node->SetPosition(Vector3(Random(200.0f), Random(50.0f, 60.0f), Random(80.0f)));
 	// rb->SetLinearVelocity(Vector3(Random(20.0f), 0, Random(20.0f)));
 }
 
 void Boid::ComputeForce(Boid * boid, Missile * missile)
 {
-	force = Repel(boid) + Align(boid) + Attract(boid) + MissileDodge(boid, missile);
+	force = Repel(boid) + Align(boid) + Attract(boid) /*+ MissileDodge(boid, missile)*/;
 }
 
 Vector3 Boid::Attract(Boid * boid)
@@ -58,9 +58,11 @@ Vector3 Boid::Attract(Boid * boid)
 		if (this == &boid[i]) continue;
 
 		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-		float distance = sep.Length();
+		Vector3 position = boid[i].rb->GetPosition();
 
-		if (distance < Range_FAttract)
+		float d = sep.Length();
+
+		if (d < Range_FAttract)
 		{
 			centerOfMass += boid[i].rb->GetPosition();
 			neighbourCount++;
@@ -119,8 +121,6 @@ Vector3 Boid::Repel(Boid * boid)
 		if (distance < Range_FRepel)
 		{
 			Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
-			//repelForce += (delta / delta * delta);
-			//repelForce = repelForce - (rb->GetPosition() - boid[i].rb->GetPosition()) * FRepel_Factor;
 			repelForce += (delta / delta.Length());
 			neighbourCount++;
 		}
@@ -169,9 +169,9 @@ void Boid::Update(float lastFrame)
 		direction = 10.0f;
 		rb->SetLinearVelocity(velocity.Normalized() * direction);
 	}
-	else if (direction > 50.0f)
+	else if (direction > 100.0f)
 	{
-		direction = 50.0f;
+		direction = 100.0f;
 		rb->SetLinearVelocity(velocity.Normalized() * direction);
 	}
 

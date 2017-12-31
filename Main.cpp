@@ -256,8 +256,6 @@ void Main::AddObjects()
 	}
 }
 
-
-
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 {
 	using namespace Update;
@@ -491,6 +489,7 @@ void Main::Connect(StringHash eventType, VariantMap& eventData)
 
 	// Connect to the server and hide the menu.
 	network->Connect(address, SERVER_PORT, scene_);
+
 	isMenuVisible = !isMenuVisible;
 	connectButton->SetVisible(false);
 	startServerButton->SetVisible(false);
@@ -828,6 +827,7 @@ void Main::ProcessClientControls()
 	Network* network = GetSubsystem<Network>();
 	const Vector<SharedPtr<Connection> >& connections = network->GetClientConnections();
 
+	// If there are less than 2 players connected and ready, wait until there is enough players.
 	if (clientCount < 2)
 	{
 		VariantMap remoteEventData;
@@ -853,7 +853,7 @@ void Main::ProcessClientControls()
 			if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
 			if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
 			if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
-			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); 
+			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, i, client); // Maybe add something to do with ID shit here?
 			if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
 			if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
 		}
@@ -894,4 +894,3 @@ Controls Main::ClientToServerControls()
 	controls.yaw_ = yaw_;
 	return controls;
 }
-

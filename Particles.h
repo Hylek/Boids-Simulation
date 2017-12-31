@@ -40,7 +40,7 @@
 
 using namespace Urho3D;
 
-static const unsigned NUM_SPRITES = 25;
+static const unsigned NUM_SPRITES = 75;
 static const StringHash VAR_MOVESPEED("MoveSpeed");
 static const StringHash VAR_ROTATESPEED("RotateSpeed");
 
