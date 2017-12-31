@@ -17,7 +17,6 @@ static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 static const StringHash E_PLAYERSREADY("PlayersAreReady");
 static const StringHash E_RESETGAME("ResetGame");
 
-
 // DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
 
 Main::Main(Context* context) : Sample(context)
@@ -155,10 +154,10 @@ void Main::CreateInitialScene()
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
 	// Create bubble streams
-	for (int i = 0; i < 100; i++)
-	{
-		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
-	}
+	//for (int i = 0; i < 100; i++)
+	//{
+	//	bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+	//}
 }
 
 void Main::CreateLocalScene()
@@ -239,17 +238,25 @@ void Main::CreateLocalScene()
 	Skybox* skybox = skyNode->CreateComponent<Skybox>();
 	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+}
+
+void Main::AddObjects()
+{
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Graphics* graphics = GetSubsystem<Graphics>();
 
 	// Create objects
 	boidSet.Init(cache, scene_);
+
 	missile.CreateMissile(cache, scene_);
 
-	// Create bubble streams
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < 100; i++)
 	{
 		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
 	}
 }
+
+
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 {
@@ -358,10 +365,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 			resetTimer -= timeStep;
 		}
 	}
-
-
 	bubbles.Update(timeStep);
-
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
@@ -460,7 +464,7 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 {
 	Log::WriteRaw("Server is starting...");
 
-	CreateLocalScene();
+	AddObjects();
 	Network* network = GetSubsystem<Network>();
 	network->StartServer(SERVER_PORT);
 
@@ -476,7 +480,6 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 // Connect a client to the server in SPECTATOR MODE // CLIENT FUNCTION
 void Main::Connect(StringHash eventType, VariantMap& eventData)
 {
-	CreateLocalScene();
 	Network* network = GetSubsystem<Network>();
 	String address = serverAddressEdit->GetText().Trimmed();
 
@@ -577,6 +580,14 @@ void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 	clientStartGame->SetVisible(false);
 	disconnectButton->SetVisible(true);
 	serverAddressEdit->SetVisible(false);
+
+	// Add the bubbles after the server has connected, as they do not affect the game and can be made locally.
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	Graphics* graphics = GetSubsystem<Graphics>();
+	for (int i = 0; i < 100; i++)
+	{
+		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+	}
 }
 
 // Handle the processing of controls by client and server // SERVER AND CLIENT FUNCTION
@@ -599,15 +610,9 @@ void Main::PhysicsPreStep(StringHash eventType, VariantMap & eventData)
 // Handle a client that has finished loading // SERVER FUNCTION
 void Main::ClientFinishedLoading(StringHash eventType, VariantMap & eventData)
 {
-	ResourceCache* cache = GetSubsystem<ResourceCache>();
-	Graphics* graphics = GetSubsystem<Graphics>();
 	// This function is useful for initing objects after the client has loaded.
 	Log::WriteRaw("A client has completed loading!");
 
-	for (int i = 0; i < 50; i++)
-	{
-		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
-	}
 }
 
 // Client is ready to start, establish a new connection and create a new client controlled object // CLIENT FUNCTION

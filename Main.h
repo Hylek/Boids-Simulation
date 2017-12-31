@@ -76,6 +76,7 @@ private:
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 	void CreateInitialScene();
 	void CreateLocalScene();
+	void AddObjects();
 	void SubscribeToEvents();
 
 	// Menu code START
