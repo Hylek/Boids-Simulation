@@ -43,6 +43,7 @@
 using namespace Urho3D;
 
 static const short int NUM_BOIDS = 100;
+static const short int CELL_AMOUNT = 100;
 
 namespace Urho3D
 {
@@ -67,7 +68,7 @@ public:
 	Boid();
 	~Boid();
 
-	void Init(ResourceCache* cache, Scene* scene);
+	void Init(ResourceCache* cache, Scene* scene, Vector2 randomPos);
 	void ComputeForce(Boid* boid, Missile* missile);
 	Vector3 Attract(Boid* boid);
 	Vector3 Align(Boid* boid);
@@ -81,12 +82,9 @@ public:
 	CollisionShape* collider;
 	StaticModel* model;
 
-	// OPTIMISATION CODE VARIABLES
-
-
 };
 
-class BoidSet : public Boid
+class BoidSet
 {
 
 public:
@@ -94,11 +92,30 @@ public:
 	~BoidSet();
 
 	Boid boidList[NUM_BOIDS];
+	std::vector<Boid> boidListVector;
 
 	void Init(ResourceCache *pRes, Scene* scene);
+	void InitGrid();
 	void Update(float tm, Missile* missile);
 
-	std::vector<HashMap<Node*, int>> specialGrid; // ;)
-	HashMap<Node*, int> specialCell; // ;)
+
+	int counter = 0;
+
+
+	int cellDivideSize = 20;
+
+	// OPTIMISATION CODE VARIABLES
+	//HashMap<Node*, gridIndex> specialCell; // ;)
+	//std::vector<HashMap<Node*, gridIndex>> specialGrid; // ;)
+	//HashMap<gridIndex, std::vector<Node*>> grid;
+	//HashMap<Vector2, Node*> grid;
+
+
+	std::vector<std::vector<std::vector<Node*>>> grid;
+
+	void Occupy();
+	void Occupied();
+	bool CellChange();
+
 
 };

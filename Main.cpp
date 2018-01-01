@@ -774,7 +774,6 @@ void Main::ProcessCollisions(Connection* connection)
 			{
 				boid->SetEnabled(false);
 				missileVector[j]->SetEnabled(false);
-				missileVector[j]->GetComponent<RigidBody>()->SetEnabled(false);
 
 				if (missileVector[j]->GetVar("ID") == playerNode)
 				{
@@ -821,7 +820,6 @@ void Main::UpdateClientScore(StringHash eventType, VariantMap & eventData)
 {
 	int score = eventData[CLIENT_SCORE].GetInt();
 	std::cout << "CLIENT SCORE IS: " << score << std::endl;
-	std::string scoreString = std::to_string(score);
 
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	UI* ui = GetSubsystem<UI>();

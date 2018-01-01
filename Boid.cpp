@@ -22,7 +22,7 @@ Boid::~Boid()
 
 }
 
-void Boid::Init(ResourceCache* cache, Scene* scene)
+void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 {
 	node = scene->CreateChild("Boid");
 	node->SetScale(Random(0.5f, 1.15f));
@@ -38,8 +38,7 @@ void Boid::Init(ResourceCache* cache, Scene* scene)
 	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
 	rb->SetMass(2.0f);
-	node->SetPosition(Vector3(Random(200.0f), Random(50.0f, 60.0f), Random(/*80.0f*/200.0f)));
-
+	node->SetPosition(Vector3(randomBoidPos.x_, Random(50.0f, 60.0f), randomBoidPos.y_));
 }
 
 void Boid::ComputeForce(Boid * boid, Missile * missile)
@@ -47,7 +46,7 @@ void Boid::ComputeForce(Boid * boid, Missile * missile)
 	force = Repel(boid) + Align(boid) + Attract(boid) /*+ MissileDodge(boid, missile)*/;
 }
 
-Vector3 Boid::Attract(Boid * boid)
+Vector3 Boid::Attract(Boid* boid)
 {
 	Vector3 centerOfMass;
 	float neighbourCount = 0;
@@ -225,11 +224,37 @@ BoidSet::~BoidSet()
 
 void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 {
+	Vector2 randomBoidPos;
+
+	// Create the spatial grid.
+	InitGrid();
+
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
-		boidList[i].Init(pRes, scene);
-	}
+		// For each boid set a random position and store it.
+		randomBoidPos = Vector2(Random(180.0f) - 90.0f, Random(180.0f) - 90.0f);
+		// Create the boids
+		boidList[i].Init(pRes, scene, randomBoidPos);
 
+		// Create the grid dimensions based on the random boid positions and divide to create cells.
+		int row = (randomBoidPos.x_ + 100.0f) / cellDivideSize;
+		int col = (randomBoidPos.y_ + 100.0f) / cellDivideSize;
+
+		// Push back each boid's node into the grid.
+		grid[row][col].push_back(boidList[i].node);
+	}
+}
+
+void BoidSet::InitGrid()
+{
+	for (int i = 0; i < CELL_AMOUNT; i++)
+	{
+		grid.push_back(std::vector<std::vector<Node*>>());
+		for (int j = 0; j < CELL_AMOUNT; j++)
+		{
+			grid[i].push_back(std::vector<Node*>());
+		}
+	}
 }
 
 void BoidSet::Update(float tm, Missile* missile)
