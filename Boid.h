@@ -42,7 +42,7 @@
 
 using namespace Urho3D;
 
-static const short int NUM_BOIDS = 100;
+static const short int NUM_BOIDS = 10;
 static const short int CELL_AMOUNT = 100;
 
 namespace Urho3D
@@ -112,10 +112,14 @@ public:
 
 
 	std::vector<std::vector<std::vector<Node*>>> grid;
+	std::vector<std::vector<std::vector<int>>> gridIntTest;
 
 	void Occupy();
 	void Occupied();
 	bool CellChange();
+	void ClearGrid();
+	void SearchGrid();
+	void UpdateGrid();
 
 
 };

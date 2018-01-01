@@ -241,7 +241,8 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 		int col = (randomBoidPos.y_ + 100.0f) / cellDivideSize;
 
 		// Push back each boid's node into the grid.
-		grid[row][col].push_back(boidList[i].node);
+		//grid[row][col].push_back(boidList[i].node);
+		gridIntTest[row][col].push_back(i);
 	}
 }
 
@@ -249,10 +250,12 @@ void BoidSet::InitGrid()
 {
 	for (int i = 0; i < CELL_AMOUNT; i++)
 	{
-		grid.push_back(std::vector<std::vector<Node*>>());
+		//grid.push_back(std::vector<std::vector<Node*>>());
+		gridIntTest.push_back(std::vector<std::vector<int>>());
 		for (int j = 0; j < CELL_AMOUNT; j++)
 		{
-			grid[i].push_back(std::vector<Node*>());
+			//grid[i].push_back(std::vector<Node*>());
+			gridIntTest[i].push_back(std::vector<int>());
 		}
 	}
 }
@@ -261,7 +264,34 @@ void BoidSet::Update(float tm, Missile* missile)
 {
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
+		int row = (boidList[i].node->GetPosition().x_ + 100.0f) / cellDivideSize;
+		int col = (boidList[i].node->GetPosition().z_ + 100.0f) / cellDivideSize;
+		gridIntTest[row][col].push_back(i);
+
+
 		boidList[i].ComputeForce(&boidList[0], missile);
 		boidList[i].Update(tm);
 	}
+	ClearGrid();
+}
+
+void BoidSet::ClearGrid()
+{
+	for (int row = 0; row < CELL_AMOUNT; row++)
+	{
+		for (int col = 0; col < CELL_AMOUNT; col++)
+		{
+			gridIntTest[row][col].clear();
+		}
+	}
+}
+
+void BoidSet::SearchGrid()
+{
+
+}
+
+void BoidSet::UpdateGrid()
+{
+
 }
