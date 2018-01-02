@@ -247,10 +247,10 @@ void Main::AddObjects()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	// Create objects
-	gOne.Init(cache, scene_, Random(20.0f), Random(40.0f), Random(20.0f), Random(40.0f));
-	gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(210.0f, 220.0f), Random(210.0f, 220.0f), Random(200.0f, 220.0f));
-	gThree.Init(cache, scene_, Random(-20.0f), Random(-40.0f), Random(-20.0f), Random(-40.0f));
-	gFour.Init(cache, scene_, Random(80.0f), Random(90.0f), Random(70.0f), Random(80.0f));
+	gOne.Init(cache, scene_, Random(20.0f, 30.0f), Random(30.0f, 40.0f), Random(20.0f, 30.0f), Random(30.0f, 40.0f));
+	gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f));
+	gThree.Init(cache, scene_, Random(-20.0f, -30.0f), Random(-30.0f, -40.0f), Random(-20.0f, -30.0f), Random(-30.0f, -40.0f));
+	gFour.Init(cache, scene_, Random(80.0f, 90.0f), Random(90.0f, 100.0f), Random(80.0f, 90.0f), Random(90.0f, 100.0f));
 
 	missile.CreateMissile(cache, scene_);
 }
@@ -700,6 +700,7 @@ Node* Main::CreatePlayer()
 	body->SetLinearDamping(0.65f);
 	body->SetAngularDamping(0.65f);
 	body->SetCollisionMask(4);
+	body->SetAngularFactor(Vector3(0, 1, 0));
 	body->SetCollisionMask(6);
 	body->SetMass(5.0f);
 	body->SetUseGravity(false);

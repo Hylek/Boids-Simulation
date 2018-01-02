@@ -57,6 +57,7 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 	collider->SetBox(Vector3::ONE);
 	rb->SetUseGravity(false);
 	rb->SetCollisionLayer(4);
+	rb->SetAngularFactor(Vector3(0, 1, 0));
 	rb->SetCollisionMask(2);
 	rb->SetMass(2.0f);
 	node->SetPosition(Vector3(randomBoidPos.x_, Random(60.0f, 70.0f), randomBoidPos.y_));

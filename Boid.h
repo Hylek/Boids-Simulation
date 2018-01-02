@@ -42,7 +42,7 @@
 
 using namespace Urho3D;
 
-static const short int NUM_BOIDS = 70;
+static const short int NUM_BOIDS = 80;
 static const short int CELL_AMOUNT = 60;
 
 namespace Urho3D
