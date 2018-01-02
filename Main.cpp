@@ -215,6 +215,8 @@ void Main::CreateLocalScene()
 	oceanNode->SetScale(Vector3(2000.0f, 0.0f, 2000.0f));
 	StaticModel* oceanObject = oceanNode->CreateComponent<StaticModel>();
 	oceanObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+	RigidBody* body = oceanNode->CreateComponent<RigidBody>();
+	body->SetCollisionLayer(2);
 	oceanObject->SetMaterial(cache->GetResource<Material>("Materials/Water.xml"));
 	oceanObject->SetCastShadows(true);
 
@@ -228,7 +230,7 @@ void Main::CreateLocalScene()
 	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
 	terrain->SetOccluder(true);
-	RigidBody* body = terrainNode->CreateComponent<RigidBody>();
+	RigidBody* oceanBody = terrainNode->CreateComponent<RigidBody>();
 	body->SetCollisionLayer(2);
 	CollisionShape* collider = terrainNode->CreateComponent<CollisionShape>();
 	collider->SetTerrain();
@@ -245,7 +247,10 @@ void Main::AddObjects()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	// Create objects
-	boidSet.Init(cache, scene_);
+	gOne.Init(cache, scene_, Random(20.0f), Random(40.0f), Random(20.0f), Random(40.0f));
+	gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(210.0f, 220.0f), Random(210.0f, 220.0f), Random(200.0f, 220.0f));
+	gThree.Init(cache, scene_, Random(-20.0f), Random(-40.0f), Random(-20.0f), Random(-40.0f));
+	gFour.Init(cache, scene_, Random(80.0f), Random(90.0f), Random(70.0f), Random(80.0f));
 
 	missile.CreateMissile(cache, scene_);
 }
@@ -334,7 +339,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 	if (isServer)
 	{
-		boidSet.Update(timeStep, &missile);
+		gOne.Update(timeStep, &missile);
+		gTwo.Update(timeStep, &missile);
+		gThree.Update(timeStep, &missile);
+		gFour.Update(timeStep, &missile);
 
 		if (gameTimer > 0 && clientCount >= 2)
 		{

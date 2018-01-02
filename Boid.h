@@ -42,8 +42,8 @@
 
 using namespace Urho3D;
 
-static const short int NUM_BOIDS = 200;
-static const short int CELL_AMOUNT = 100;
+static const short int NUM_BOIDS = 70;
+static const short int CELL_AMOUNT = 60;
 
 namespace Urho3D
 {
@@ -98,7 +98,7 @@ public:
 	Boid boidList[NUM_BOIDS];
 	std::vector<Boid> boidListVector;
 
-	void Init(ResourceCache *pRes, Scene* scene);
+	void Init(ResourceCache *pRes, Scene* scene, float xPosMin, float xPosMax, float zPosMin, float zPosMax);
 	void InitGrid();
 	void Update(float tm, Missile* missile);
 

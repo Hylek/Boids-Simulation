@@ -45,7 +45,14 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 	collider = node->CreateComponent<CollisionShape>();
 
 	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
-	model->SetMaterial(cache->GetResource<Material>("Materials/Fish.xml"));
+	int rand = Random(1, 4);
+	switch (rand)
+	{
+	case 1: model->SetMaterial(cache->GetResource<Material>("Materials/Fish.xml")); break;
+	case 2: model->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml")); break;
+	case 3: model->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml")); break;
+	case 4: model->SetMaterial(cache->GetResource<Material>("Materials/Water.xml")); break;
+	}
 	model->SetCastShadows(true);
 	collider->SetBox(Vector3::ONE);
 	rb->SetUseGravity(false);
@@ -157,7 +164,7 @@ Vector3 Boid::Align(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 10)
+		if (neighbourCount < 15)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();
@@ -187,7 +194,7 @@ Vector3 Boid::Repel(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 8)
+		if (neighbourCount < 10)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();
@@ -298,7 +305,7 @@ BoidSet::~BoidSet()
 
 }
 
-void BoidSet::Init(ResourceCache * pRes, Scene * scene)
+void BoidSet::Init(ResourceCache * pRes, Scene * scene, float xPosMin, float xPosMax, float zPosMin, float zPosMax)
 {
 	Vector2 randomBoidPos;
 
@@ -308,7 +315,7 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
 		// For each boid set a random position and store it.
-		randomBoidPos = Vector2(Random(180.0f) - 90.0f, Random(180.0f) - 90.0f);
+		randomBoidPos = Vector2(Random(xPosMin) - xPosMax, Random(zPosMin) - zPosMax);
 		// Create the boids
 		boidList[i].Init(pRes, scene, randomBoidPos);
 

@@ -67,8 +67,12 @@ private:
 	bool hasGameStarted = false;
 	bool isMenuVisible = false;
 	bool ignoreInputs = false;
-	BoidSet boidSet;
+	BoidSet gOne;
+	BoidSet gTwo;
+	BoidSet gThree;
+	BoidSet gFour;
 	Missile missile;
+	std::vector<BoidSet> boidGroups;
 	Particles bubbles;
 
 	virtual void Start();
