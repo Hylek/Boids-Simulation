@@ -1,16 +1,16 @@
 #include "Boid.h"
 
 float Boid::Range_FAttract = 30.0f;
-float Boid::Range_FRepel = 15.0f;
-float Boid::Range_FAlign = 30.0f;
+float Boid::Range_FRepel = 20.0f;
+float Boid::Range_FAlign = 15.0f;
 float Boid::Range_FMissileRepel = 4.0f;
 float Boid::FRange = 50.0f;
 
-float Boid::FAttract_Vmax = 2.0f;
+float Boid::FAttract_Vmax = 3.0f;
 
 float Boid::FAttract_Factor = 15.0f;
-float Boid::FRepel_Factor = 12.0f;
-float Boid::FAlign_Factor = 8.0f;
+float Boid::FRepel_Factor = 13.0f;
+float Boid::FAlign_Factor = 12.0f;
 float Boid::FMissileRepel_Factor = 25.0f;
 
 //float Boid::Range_FAttract = 25.0f;
@@ -52,7 +52,7 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
 	rb->SetMass(2.0f);
-	node->SetPosition(Vector3(randomBoidPos.x_, Random(70.0f, 80.0f), randomBoidPos.y_));
+	node->SetPosition(Vector3(randomBoidPos.x_, Random(60.0f, 70.0f), randomBoidPos.y_));
 }
 
 void Boid::ComputeForce(Boid * boid, Missile * missile)
@@ -157,7 +157,7 @@ Vector3 Boid::Align(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 5)
+		if (neighbourCount < 10)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();
@@ -187,7 +187,7 @@ Vector3 Boid::Repel(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 5)
+		if (neighbourCount < 8)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();
@@ -266,24 +266,24 @@ void Boid::Update(float lastFrame)
 		p.y_ = 90.0f;
 		rb->SetPosition(p);
 	}
-	if (p.x_ < -99.9f)
+	if (p.x_ < -500.0f)
 	{
-	p.x_ = -99.9f;
+	p.x_ = -500.0f;
 	rb->SetPosition(p);
 	}
-	else if (p.x_ > 99.9f)
+	else if (p.x_ > 500.0f)
 	{
-	p.x_ = 99.9f;
+	p.x_ = 500.0f;
 	rb->SetPosition(p);
 	}
-	if (p.z_ < -99.9f)
+	if (p.z_ < -500.0f)
 	{
-	p.z_ = -99.9f;
+	p.z_ = -500.0f;
 	rb->SetPosition(p);
 	}
-	else if (p.z_ > 99.9f)
+	else if (p.z_ > 500.0f)
 	{
-	p.z_ = 99.9f;
+	p.z_ = 500.0f;
 	rb->SetPosition(p);
 	}
 }
@@ -308,7 +308,7 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
 		// For each boid set a random position and store it.
-		randomBoidPos = Vector2(Random(250.0f) - 90.0f, Random(250.0f) - 90.0f);
+		randomBoidPos = Vector2(Random(180.0f) - 90.0f, Random(180.0f) - 90.0f);
 		// Create the boids
 		boidList[i].Init(pRes, scene, randomBoidPos);
 

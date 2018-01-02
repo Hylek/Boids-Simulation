@@ -86,7 +86,6 @@ public:
 	int row;
 	int col;
 	int index;
-
 };
 
 class BoidSet
