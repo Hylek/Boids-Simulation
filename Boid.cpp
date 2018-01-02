@@ -6,12 +6,25 @@ float Boid::Range_FAlign = 30.0f;
 float Boid::Range_FMissileRepel = 4.0f;
 float Boid::FRange = 50.0f;
 
-float Boid::FAttract_Vmax = 8.0f;
+float Boid::FAttract_Vmax = 2.0f;
 
 float Boid::FAttract_Factor = 15.0f;
 float Boid::FRepel_Factor = 12.0f;
 float Boid::FAlign_Factor = 8.0f;
 float Boid::FMissileRepel_Factor = 25.0f;
+
+//float Boid::Range_FAttract = 25.0f;
+//float Boid::Range_FRepel = 8.0f;
+//float Boid::Range_FAlign = 15.0f;
+//float Boid::Range_FMissileRepel = 4.0f;
+//float Boid::FRange = 50.0f;
+//
+//float Boid::FAttract_Vmax = 5.0f;
+//
+//float Boid::FAttract_Factor = 15.0f;
+//float Boid::FRepel_Factor = 2.5f;
+//float Boid::FAlign_Factor = 2.0f;
+//float Boid::FMissileRepel_Factor = 25.0f;
 
 Boid::Boid()
 {
@@ -39,31 +52,90 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 	rb->SetCollisionLayer(4);
 	rb->SetCollisionMask(2);
 	rb->SetMass(2.0f);
-	node->SetPosition(Vector3(randomBoidPos.x_, Random(50.0f, 60.0f), randomBoidPos.y_));
+	node->SetPosition(Vector3(randomBoidPos.x_, Random(70.0f, 80.0f), randomBoidPos.y_));
 }
 
-void Boid::ComputeForce(Boid * boid, Missile * missile, int i)
+void Boid::ComputeForce(Boid * boid, Missile * missile)
 {
-	force = Repel(boid, i) + Align(boid, i) + Attract(boid, i) /*+ MissileDodge(boid, missile)*/;
+	force = Repel(boid) + Align(boid) + Attract(boid);
+
+	//Vector3 centerOfMass;
+	//Vector3 direction;
+	//float neighbourCount = 0;
+	//Vector3 attractForce = Vector3(0, 0, 0);
+	//Vector3 alignForce = Vector3(0, 0, 0);
+	//Vector3 repelForce = Vector3(0, 0, 0);
+	//force = Vector3(0, 0, 0);
+
+	//for (int i = 0; i < NUM_BOIDS; i++)
+	//{
+	//	if (this == &boid[i]) continue;
+
+	//	Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+	//	Vector3 position = boid[i].rb->GetPosition();
+
+	//	float d = sep.Length();
+
+	//	if (d < Range_FAttract)
+	//	{
+	//		centerOfMass += boid[i].rb->GetPosition();
+	//		neighbourCount++;
+	//	}
+	//	if (d < Range_FAlign)
+	//	{
+	//		direction += boid[i].rb->GetLinearVelocity();
+	//		neighbourCount++;
+	//	}
+	//	if (d < Range_FRepel)
+	//	{
+	//		Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
+	//		repelForce += (delta / delta.Length());
+	//		repelForce *= FRepel_Factor;
+	//		neighbourCount++;
+	//	}
+	//}
+	//if (neighbourCount > 0)
+	//{
+	//	// Attract
+	//	centerOfMass /= neighbourCount;
+	//	Vector3 dir = (centerOfMass - rb->GetPosition()).Normalized();
+	//	Vector3 vDesired = dir * FAttract_Vmax;
+	//	attractForce += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
+
+	//	// Align
+	//	direction /= neighbourCount;
+	//	alignForce = (direction - rb->GetLinearVelocity()) * FAlign_Factor;
+
+	//	// Repel
+
+
+	//	force += repelForce + alignForce + attractForce;
+	//}
 }
 
-Vector3 Boid::Attract(Boid* boid, int i)
+Vector3 Boid::Attract(Boid* boid)
 {
 	Vector3 centerOfMass;
 	float neighbourCount = 0;
 	Vector3 attractForce = Vector3(0, 0, 0);
 
-	//if (this == &boid[i]) continue;
-
-	Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-	//Vector3 position = boid[i].rb->GetPosition();
-
-	float d = sep.Length();
-
-	if (d < Range_FAttract)
+	for (int i = 0; i < NUM_BOIDS; i++)
 	{
-		centerOfMass += boid[i].rb->GetPosition();
-		neighbourCount++;
+		if (this == &boid[i]) continue;
+
+		if (neighbourCount < 5)
+		{
+			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+			Vector3 position = boid[i].rb->GetPosition();
+
+			float d = sep.Length();
+
+			if (d < Range_FAttract)
+			{
+				centerOfMass += boid[i].rb->GetPosition();
+				neighbourCount++;
+			}
+		}
 	}
 	if (neighbourCount > 0)
 	{
@@ -75,25 +147,28 @@ Vector3 Boid::Attract(Boid* boid, int i)
 	return attractForce;
 }
 
-Vector3 Boid::Align(Boid * boid, int i)
+Vector3 Boid::Align(Boid * boid)
 {
 	Vector3 direction;
 	float neighbourCount = 0;
 	Vector3 alignForce = Vector3(0, 0, 0);
 
-	//for (int i = 0; i < NUM_BOIDS; i++)
-	//{
-		//if (this == &boid[i]) continue;
+	for (int i = 0; i < NUM_BOIDS; i++)
+	{
+		if (this == &boid[i]) continue;
 
-		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-		float distance = sep.Length();
-
-		if (distance < Range_FAlign)
+		if (neighbourCount < 5)
 		{
-			direction += boid[i].rb->GetLinearVelocity();
-			neighbourCount++;
+			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+			float distance = sep.Length();
+
+			if (distance < Range_FAlign)
+			{
+				direction += boid[i].rb->GetLinearVelocity();
+				neighbourCount++;
+			}
 		}
-	//}
+	}
 	if (neighbourCount > 0)
 	{
 		direction /= neighbourCount;
@@ -103,25 +178,28 @@ Vector3 Boid::Align(Boid * boid, int i)
 	return alignForce;
 }
 
-Vector3 Boid::Repel(Boid * boid, int i)
+Vector3 Boid::Repel(Boid * boid)
 {
 	int neighbourCount = 0;
 	Vector3 repelForce = Vector3(0, 0, 0);
 
-	//for (int i = 0; i < NUM_BOIDS; i++)
-	//{
-		//if (this == &boid[i]) continue;
+	for (int i = 0; i < NUM_BOIDS; i++)
+	{
+		if (this == &boid[i]) continue;
 
-		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-		float distance = sep.Length();
-
-		if (distance < Range_FRepel)
+		if (neighbourCount < 5)
 		{
-			Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
-			repelForce += (delta / delta.Length());
-			neighbourCount++;
+			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+			float distance = sep.Length();
+
+			if (distance < Range_FRepel)
+			{
+				Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
+				repelForce += (delta / delta.Length());
+				neighbourCount++;
+			}
 		}
-	//}
+	}
 	if (neighbourCount > 0)
 	{
 		repelForce *= FRepel_Factor;
@@ -225,27 +303,27 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 	Vector2 randomBoidPos;
 
 	// Create the spatial grid.
-	InitGrid();
+	//InitGrid();
 
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
 		// For each boid set a random position and store it.
-		randomBoidPos = Vector2(Random(180.0f) - 90.0f, Random(180.0f) - 90.0f);
+		randomBoidPos = Vector2(Random(250.0f) - 90.0f, Random(250.0f) - 90.0f);
 		// Create the boids
 		boidList[i].Init(pRes, scene, randomBoidPos);
 
 		// Create the grid dimensions based on the random boid positions and divide to create cells.
-		int row = (randomBoidPos.x_ + 100.0f) / cellDivideSize;
-		int col = (randomBoidPos.y_ + 100.0f) / cellDivideSize;
+		//int row = (randomBoidPos.x_ + 100.0f) / cellDivideSize;
+		//int col = (randomBoidPos.y_ + 100.0f) / cellDivideSize;
 
 		// Set the index of every Boid in the boidSet.
 
 		// Push back each boid's node into the grid.
 		//grid[row][col].push_back(boidList[i]);
-		gridIntTest[row][col].push_back(i);
+		//gridIntTest[row][col].push_back(i);
 		//ClearGrid();
 	}
-	ClearGrid();
+	//ClearGrid();
 }
 
 void BoidSet::InitGrid()
@@ -277,41 +355,43 @@ void BoidSet::Update(float tm, Missile* missile)
 		// Calculate the new cell based on the now current position.// THIS LINE CAUSES THE VECTOR SUBSCRIPT OUT OF RANGE ERROR
 		//std::cout << gridIntTest[row][col].size() << std::endl;
 
-		int row = (boidList[i].rb->GetPosition().x_ + 100.0f) / cellDivideSize;
-		int col = (boidList[i].rb->GetPosition().z_ + 100.0f) / cellDivideSize;
+		//int row = (boidList[i].rb->GetPosition().x_ + 100.0f) / cellDivideSize;
+		//int col = (boidList[i].rb->GetPosition().z_ + 100.0f) / cellDivideSize;
 
-		// If any boid's position causes it to leave the grid, snap them back to grid 9/0
-		if (row > 9)
-		{
-			row = 9;
-		}
-		if (row < 0)
-		{
-			row = 0;
-		}
-		if (col > 9)
-		{
-			col = 9;
-		}
-		if (col < 0)
-		{
-			col = 0;
-		}
+		//// If any boid's position causes it to leave the grid, snap them back to grid 9/0
+		//if (row > 9)
+		//{
+		//	row = 9;
+		//}
+		//if (row < 0)
+		//{
+		//	row = 0;
+		//}
+		//if (col > 9)
+		//{
+		//	col = 9;
+		//}
+		//if (col < 0)
+		//{
+		//	col = 0;
+		//}
 
-		//std::cout << "ROW: " << row << std::endl;
-		//std::cout << "COL: " << col << std::endl;
+		////std::cout << "ROW: " << row << std::endl;
+		////std::cout << "COL: " << col << std::endl;
 
-		gridIntTest[row][col].push_back(i);
+		//gridIntTest[row][col].push_back(i);
 
-		// Loop through the cell the current boid is in, compute force for all other boids in this cell
-		//// Then search through the neighbouring cells and check for boids in those and apply forces.
-		for (int j = 0; j < gridIntTest[row][col].size(); j++)
-		{
-			if (i != gridIntTest[row][col][j])
-			{
-				boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
-			}
-		}
+		//// Loop through the cell the current boid is in, compute force for all other boids in this cell
+		////// Then search through the neighbouring cells and check for boids in those and apply forces.
+		//std::vector<int> pos = gridIntTest[row][col];
+
+		//for (int j = 0; j < gridIntTest[row][col].size(); j++)
+		//{
+		//	if (i != gridIntTest[row][col][j])
+		//	{
+		//		boidList[i].ComputeForce(&boidList[0], missile);
+		//	}
+		//}
 		//if (row + 1 < 9)
 		//{
 		//	for (int j = 0; j < gridIntTest[row + 1 < 9][col].size(); j++)
@@ -398,7 +478,7 @@ void BoidSet::Update(float tm, Missile* missile)
 			//}
 
 		//std::cout << "SIZE: " << gridIntTest[row][col].size() << std::endl;
-
+		boidList[i].ComputeForce(&boidList[0], missile);
 		boidList[i].Update(tm);
 
 		// After the update cycle, recalculate the cell based on the new boid's position
@@ -412,7 +492,7 @@ void BoidSet::Update(float tm, Missile* missile)
 		//	grid[newRow][newCol].push_back(boidList[i]);
 		//}
 	}
-	ClearGrid();
+	//ClearGrid();
 }
 
 void BoidSet::ClearGrid()

@@ -42,7 +42,7 @@
 
 using namespace Urho3D;
 
-static const short int NUM_BOIDS = 100;
+static const short int NUM_BOIDS = 200;
 static const short int CELL_AMOUNT = 100;
 
 namespace Urho3D
@@ -70,10 +70,10 @@ public:
 	~Boid();
 
 	void Init(ResourceCache* cache, Scene* scene, Vector2 randomPos);
-	void ComputeForce(Boid* boid, Missile* missile, int i);
-	Vector3 Attract(Boid* boid, int i);
-	Vector3 Align(Boid* boid, int i);
-	Vector3 Repel(Boid* boid, int i);
+	void ComputeForce(Boid* boid, Missile* missile);
+	Vector3 Attract(Boid* boid);
+	Vector3 Align(Boid* boid);
+	Vector3 Repel(Boid* boid);
 	Vector3 MissileDodge(Boid* boid, Missile* missile);
 	void Update(float lastFrame);
 
