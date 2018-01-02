@@ -4,6 +4,7 @@ float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 15.0f;
 float Boid::Range_FAlign = 30.0f;
 float Boid::Range_FMissileRepel = 4.0f;
+float Boid::FRange = 50.0f;
 
 float Boid::FAttract_Vmax = 8.0f;
 
@@ -41,31 +42,28 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 	node->SetPosition(Vector3(randomBoidPos.x_, Random(50.0f, 60.0f), randomBoidPos.y_));
 }
 
-void Boid::ComputeForce(Boid * boid, Missile * missile)
+void Boid::ComputeForce(Boid * boid, Missile * missile, int i)
 {
-	force = Repel(boid) + Align(boid) + Attract(boid) /*+ MissileDodge(boid, missile)*/;
+	force = Repel(boid, i) + Align(boid, i) + Attract(boid, i) /*+ MissileDodge(boid, missile)*/;
 }
 
-Vector3 Boid::Attract(Boid* boid)
+Vector3 Boid::Attract(Boid* boid, int i)
 {
 	Vector3 centerOfMass;
 	float neighbourCount = 0;
 	Vector3 attractForce = Vector3(0, 0, 0);
 
-	for (int i = 0; i < NUM_BOIDS; i++)
+	//if (this == &boid[i]) continue;
+
+	Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
+	//Vector3 position = boid[i].rb->GetPosition();
+
+	float d = sep.Length();
+
+	if (d < Range_FAttract)
 	{
-		if (this == &boid[i]) continue;
-
-		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-		Vector3 position = boid[i].rb->GetPosition();
-
-		float d = sep.Length();
-
-		if (d < Range_FAttract)
-		{
-			centerOfMass += boid[i].rb->GetPosition();
-			neighbourCount++;
-		}
+		centerOfMass += boid[i].rb->GetPosition();
+		neighbourCount++;
 	}
 	if (neighbourCount > 0)
 	{
@@ -77,15 +75,15 @@ Vector3 Boid::Attract(Boid* boid)
 	return attractForce;
 }
 
-Vector3 Boid::Align(Boid * boid)
+Vector3 Boid::Align(Boid * boid, int i)
 {
 	Vector3 direction;
 	float neighbourCount = 0;
 	Vector3 alignForce = Vector3(0, 0, 0);
 
-	for (int i = 0; i < NUM_BOIDS; i++)
-	{
-		if (this == &boid[i]) continue;
+	//for (int i = 0; i < NUM_BOIDS; i++)
+	//{
+		//if (this == &boid[i]) continue;
 
 		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 		float distance = sep.Length();
@@ -95,7 +93,7 @@ Vector3 Boid::Align(Boid * boid)
 			direction += boid[i].rb->GetLinearVelocity();
 			neighbourCount++;
 		}
-	}
+	//}
 	if (neighbourCount > 0)
 	{
 		direction /= neighbourCount;
@@ -105,14 +103,14 @@ Vector3 Boid::Align(Boid * boid)
 	return alignForce;
 }
 
-Vector3 Boid::Repel(Boid * boid)
+Vector3 Boid::Repel(Boid * boid, int i)
 {
 	int neighbourCount = 0;
 	Vector3 repelForce = Vector3(0, 0, 0);
 
-	for (int i = 0; i < NUM_BOIDS; i++)
-	{
-		if (this == &boid[i]) continue;
+	//for (int i = 0; i < NUM_BOIDS; i++)
+	//{
+		//if (this == &boid[i]) continue;
 
 		Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 		float distance = sep.Length();
@@ -123,7 +121,7 @@ Vector3 Boid::Repel(Boid * boid)
 			repelForce += (delta / delta.Length());
 			neighbourCount++;
 		}
-	}
+	//}
 	if (neighbourCount > 0)
 	{
 		repelForce *= FRepel_Factor;
@@ -190,24 +188,24 @@ void Boid::Update(float lastFrame)
 		p.y_ = 90.0f;
 		rb->SetPosition(p);
 	}
-	if (p.x_ < -300.0f)
+	if (p.x_ < -99.9f)
 	{
-	p.x_ = -300.0f;
+	p.x_ = -99.9f;
 	rb->SetPosition(p);
 	}
-	else if (p.x_ > 300.0f)
+	else if (p.x_ > 99.9f)
 	{
-	p.x_ = 300.0f;
+	p.x_ = 99.9f;
 	rb->SetPosition(p);
 	}
-	if (p.z_ < -200.0f)
+	if (p.z_ < -99.9f)
 	{
-	p.z_ = -200.0f;
+	p.z_ = -99.9f;
 	rb->SetPosition(p);
 	}
-	else if (p.z_ > 200.0f)
+	else if (p.z_ > 99.9f)
 	{
-	p.z_ = 200.0f;
+	p.z_ = 99.9f;
 	rb->SetPosition(p);
 	}
 }
@@ -240,21 +238,33 @@ void BoidSet::Init(ResourceCache * pRes, Scene * scene)
 		int row = (randomBoidPos.x_ + 100.0f) / cellDivideSize;
 		int col = (randomBoidPos.y_ + 100.0f) / cellDivideSize;
 
+		// Set the index of every Boid in the boidSet.
+
 		// Push back each boid's node into the grid.
-		//grid[row][col].push_back(boidList[i].node);
+		//grid[row][col].push_back(boidList[i]);
 		gridIntTest[row][col].push_back(i);
+		//ClearGrid();
 	}
+	ClearGrid();
 }
 
 void BoidSet::InitGrid()
 {
-	for (int i = 0; i < CELL_AMOUNT; i++)
+	//grid.push_back(std::vector<std::vector<Boid>>());
+	//gridIntTest.resize(10);
+	////std::cout << gridIntTest.size() << std::endl;
+	//for (int i = 0; i < 10; i++)
+	//{
+	//	//grid[i].push_back(std::vector<Boid>());
+	//	gridIntTest[i].resize(10);
+	//	std::cout << gridIntTest[i].size() << std::endl;
+	//}
+
+	for (int i = 0; i < 10; i++)
 	{
-		//grid.push_back(std::vector<std::vector<Node*>>());
 		gridIntTest.push_back(std::vector<std::vector<int>>());
-		for (int j = 0; j < CELL_AMOUNT; j++)
+		for (int j = 0; j < 10; j++)
 		{
-			//grid[i].push_back(std::vector<Node*>());
 			gridIntTest[i].push_back(std::vector<int>());
 		}
 	}
@@ -264,26 +274,162 @@ void BoidSet::Update(float tm, Missile* missile)
 {
 	for (int i = 0; i < NUM_BOIDS; i++)
 	{
-		int row = (boidList[i].node->GetPosition().x_ + 100.0f) / cellDivideSize;
-		int col = (boidList[i].node->GetPosition().z_ + 100.0f) / cellDivideSize;
+		// Calculate the new cell based on the now current position.// THIS LINE CAUSES THE VECTOR SUBSCRIPT OUT OF RANGE ERROR
+		//std::cout << gridIntTest[row][col].size() << std::endl;
+
+		int row = (boidList[i].rb->GetPosition().x_ + 100.0f) / cellDivideSize;
+		int col = (boidList[i].rb->GetPosition().z_ + 100.0f) / cellDivideSize;
+
+		// If any boid's position causes it to leave the grid, snap them back to grid 9/0
+		if (row > 9)
+		{
+			row = 9;
+		}
+		if (row < 0)
+		{
+			row = 0;
+		}
+		if (col > 9)
+		{
+			col = 9;
+		}
+		if (col < 0)
+		{
+			col = 0;
+		}
+
+		//std::cout << "ROW: " << row << std::endl;
+		//std::cout << "COL: " << col << std::endl;
+
 		gridIntTest[row][col].push_back(i);
 
+		// Loop through the cell the current boid is in, compute force for all other boids in this cell
+		//// Then search through the neighbouring cells and check for boids in those and apply forces.
+		for (int j = 0; j < gridIntTest[row][col].size(); j++)
+		{
+			if (i != gridIntTest[row][col][j])
+			{
+				boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			}
+		}
+		//if (row + 1 < 9)
+		//{
+		//	for (int j = 0; j < gridIntTest[row + 1 < 9][col].size(); j++)
+		//	{
+		//		if (row + 1 < 9 && i != gridIntTest[row + 1 < 9][col][j])
+		//		{
+		//			boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+		//		}
+		//	}
+		//}
+		//if (col + 1 < 9)
+		//{
+		//	for (int j = 0; j < gridIntTest[row][col + 1 < 9].size(); j++)
+		//	{
+		//		if (col + 1 < 9 && i != gridIntTest[row][col][j])
+		//		{
+		//			boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+		//		}
+		//	}
+		//}
 
-		boidList[i].ComputeForce(&boidList[0], missile);
+		//if (row - 1 > 0)
+		//{
+		//	for (int j = 0; j < gridIntTest[row - 1 < 0][col].size(); j++)
+		//	{
+		//		if (row + 1 > 0 && i != gridIntTest[row - 1 > 0][col][j])
+		//		{
+		//			boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+		//		}
+		//	}
+		//}
+
+		//if (col + 1 < 9)
+		//{
+		//	for (int j = 0; j < gridIntTest[row][col + 1 < 9].size(); j++)
+		//	{
+		//		if (col + 1 < 9 && i != gridIntTest[row][col + 1 < 9][j])
+		//		{
+		//			std::cout << gridIntTest[row][col + 1 < 9].size() << std::endl;
+		//			boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+		//		}
+		//	}
+		//}
+
+		//if (row < 9 && col < 9)
+		//{
+		//	for (int j = 0; j < gridIntTest[row + 1 < 9][col + 1 < 9].size(); j++)
+		//	{
+		//		if (i != gridIntTest[row + 1 < 9][col + 1 < 9][j])
+		//		{
+		//			boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+		//		}
+		//	}
+		//}
+
+
+			//if (i != gridIntTest[row][col + 1][j] && col < 10)
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+			//if (i != gridIntTest[row][col - 1][j] && col > 0)
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+			//if (row > 0 && i != gridIntTest[row - 1][col][j])
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+			//if (i != gridIntTest[row + 1][col + 1][j] && col < 10 && row < 10)
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+			//if (i != gridIntTest[row - 1][col - 1][j] && row > 0 && col > 0)
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+			//if (i != gridIntTest[row - 1][col + 1][j] && row > 0 && col < 10)
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+			//if (i != gridIntTest[row + 1][col - 1][j] && col > 0 && row < 10)
+			//{
+			//	boidList[i].ComputeForce(&boidList[0], missile, gridIntTest[row][col][j]);
+			//}
+
+		//std::cout << "SIZE: " << gridIntTest[row][col].size() << std::endl;
+
 		boidList[i].Update(tm);
+
+		// After the update cycle, recalculate the cell based on the new boid's position
+		//int newRow = (boidList[i].node->GetPosition().x_ + 100.0f) / cellDivideSize;
+		//int newCol = (boidList[i].node->GetPosition().z_ + 100.0f) / cellDivideSize;
+
+		//if (newRow != boidList[i].row || newCol != boidList[i].col)
+		//{
+		//	std::cout << "Change in cell!" << std::endl;
+		//	grid[boidList[i].row][boidList[i].col].erase(grid[boidList[i].row][boidList[i].col].begin() + boidList[i].index - 1);
+		//	grid[newRow][newCol].push_back(boidList[i]);
+		//}
 	}
 	ClearGrid();
 }
 
 void BoidSet::ClearGrid()
 {
-	for (int row = 0; row < CELL_AMOUNT; row++)
+	for (int row = 0; row < 10; row++)
 	{
-		for (int col = 0; col < CELL_AMOUNT; col++)
+		for (int col = 0; col < 10; col++)
 		{
 			gridIntTest[row][col].clear();
 		}
 	}
+}
+
+bool BoidSet::CellChange()
+{
+
+	return false;
 }
 
 void BoidSet::SearchGrid()

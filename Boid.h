@@ -42,7 +42,7 @@
 
 using namespace Urho3D;
 
-static const short int NUM_BOIDS = 10;
+static const short int NUM_BOIDS = 100;
 static const short int CELL_AMOUNT = 100;
 
 namespace Urho3D
@@ -63,16 +63,17 @@ class Boid
 	static float FMissileRepel_Factor;
 	static float FAlign_Factor;
 	static float FAttract_Vmax;
+	static float FRange;
 
 public:
 	Boid();
 	~Boid();
 
 	void Init(ResourceCache* cache, Scene* scene, Vector2 randomPos);
-	void ComputeForce(Boid* boid, Missile* missile);
-	Vector3 Attract(Boid* boid);
-	Vector3 Align(Boid* boid);
-	Vector3 Repel(Boid* boid);
+	void ComputeForce(Boid* boid, Missile* missile, int i);
+	Vector3 Attract(Boid* boid, int i);
+	Vector3 Align(Boid* boid, int i);
+	Vector3 Repel(Boid* boid, int i);
 	Vector3 MissileDodge(Boid* boid, Missile* missile);
 	void Update(float lastFrame);
 
@@ -81,6 +82,10 @@ public:
 	RigidBody* rb;
 	CollisionShape* collider;
 	StaticModel* model;
+
+	int row;
+	int col;
+	int index;
 
 };
 
@@ -100,6 +105,7 @@ public:
 
 
 	int counter = 0;
+	bool isGridActive = false;
 
 
 	int cellDivideSize = 20;
@@ -110,8 +116,7 @@ public:
 	//HashMap<gridIndex, std::vector<Node*>> grid;
 	//HashMap<Vector2, Node*> grid;
 
-
-	std::vector<std::vector<std::vector<Node*>>> grid;
+	std::vector<std::vector<std::vector<Boid>>> grid;
 	std::vector<std::vector<std::vector<int>>> gridIntTest;
 
 	void Occupy();
