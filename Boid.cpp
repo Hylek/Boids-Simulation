@@ -193,6 +193,11 @@ void Boid::Update(float lastFrame)
 		rb->SetLinearVelocity(velocity.Normalized() * direction);
 	}
 
+	Vector3 vn = velocity.Normalized();
+	Vector3 cp = -vn.CrossProduct(Vector3(0.0f, 1.0f, 0.0f));
+	float dp = cp.DotProduct(vn);
+	rb->SetRotation(Quaternion(Acos(dp), cp));
+
 	Vector3 p = rb->GetPosition();
 	if (p.y_ < 10.0f)
 	{

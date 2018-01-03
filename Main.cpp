@@ -279,10 +279,10 @@ void Main::AddObjects()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	// Create objects
-	gOne.Init(cache, scene_, Random(20.0f, 30.0f), Random(30.0f, 40.0f), Random(20.0f, 30.0f), Random(30.0f, 40.0f));
-	gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f));
-	gThree.Init(cache, scene_, Random(-20.0f, -30.0f), Random(-30.0f, -40.0f), Random(-20.0f, -30.0f), Random(-30.0f, -40.0f));
-	gFour.Init(cache, scene_, Random(80.0f, 90.0f), Random(90.0f, 100.0f), Random(80.0f, 90.0f), Random(90.0f, 100.0f));
+	gOne.Init(cache, scene_, Random(20.0f, 30.0f), Random(20.0f, 30.0f), Random(20.0f, 30.0f), Random(20.0f, 30.0f));
+	//gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f));
+	//gThree.Init(cache, scene_, Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f));
+	//gFour.Init(cache, scene_, Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f));
 
 	missile.CreateMissile(cache, scene_);
 }
@@ -341,15 +341,9 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		missile.missileTimer -= timeStep;
 	}
-	//if (!isMenuVisible)
-	//{
-	//	GetSubsystem<Input>()->SetMouseVisible(false);
-	//}
-	//else
-	//{
-	//	GetSubsystem<Input>()->SetMouseVisible(true);
-	//}
-	if (!ui->GetCursor()->IsVisible())
+
+
+	if (!isMenuVisible)
 	{
 		ignoreInputs = false;
 	}
@@ -381,9 +375,9 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (isServer)
 	{
 		gOne.Update(timeStep, &missile);
-		gTwo.Update(timeStep, &missile);
-		gThree.Update(timeStep, &missile);
-		gFour.Update(timeStep, &missile);
+		//gTwo.Update(timeStep, &missile);
+		//gThree.Update(timeStep, &missile);
+		//gFour.Update(timeStep, &missile);
 
 		if (gameTimer > 0 && clientCount >= 2)
 		{
@@ -434,13 +428,15 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		}
 	}
 	bubbles.Update(timeStep);
-	ui->GetCursor()->SetVisible(isMenuVisible); // THIS CODE CAUSES THE MENU TO BE UNRESPONSIVE
-	window_->SetVisible(isMenuVisible);
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 {
 	MoveCamera();
+	UI* ui = GetSubsystem<UI>();
+	Input* input = GetSubsystem<Input>();
+	//ui->GetCursor()->SetVisible(isMenuVisible);
+	window_->SetVisible(isMenuVisible);
 }
 
 void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
