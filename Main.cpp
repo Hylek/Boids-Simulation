@@ -34,17 +34,18 @@ void Main::Start()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	UI* ui = GetSubsystem<UI>();
 	Sample::Start();
-	Sample::InitMouseMode(MM_RELATIVE);
 	CreateInitialScene();
+	CreateGameMenu();
 	SubscribeToEvents();
 	OpenConsoleWindow();
-	CreateGameMenu(cache, context_, ui);
+
 	isServer = false;
 	hasGameStarted = false;
 	text = ui->GetRoot()->CreateChild<Text>();
 
 	disconnectButton->SetVisible(false);
 	clientStartGame->SetVisible(false);
+	Sample::InitMouseMode(MM_FREE);
 }
 
 void Main::SubscribeToEvents()
@@ -71,6 +72,12 @@ void Main::SubscribeToEvents()
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_PLAYERSREADY);
 	//GetSubsystem<Network>()->RegisterRemoteEvent(E_RESETGAME);
 
+	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
+	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, StartServer));
+	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, Connect));
+	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, Disconnect));
+	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, ClientStartGame));
+
 }
 
 void Main::CreateInitialScene()
@@ -84,7 +91,7 @@ void Main::CreateInitialScene()
 
 	cameraNode_ = new Node(context_);
 	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
-	cameraNode_->SetPosition(Vector3(30.0f, 40.0f, 0.0f));
+	cameraNode_->SetPosition(Vector3(Random(0.0f, 100.0f), 15.0f, Random(0.0f, 100.0f)));
 	cam->SetFarClip(1000.0f);
 
 	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
@@ -111,9 +118,9 @@ void Main::CreateInitialScene()
 
 	// Creating a treasure chest
 	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
+	boxNode->SetPosition(Vector3(110.0f, 4.5f, -150.0f));
 	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
-	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
+	boxNode->SetRotation(Quaternion(0.0f, 45.0f, 0.0f));
 	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
 	boxObject->SetModel(cache->GetResource<Model>("Models/TreasureChestShut.mdl"));
 	boxObject->SetMaterial(cache->GetResource<Material>("Materials/ChestText.xml"));
@@ -122,6 +129,37 @@ void Main::CreateInitialScene()
 	boxRB->SetCollisionLayer(2);
 	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
 	boxCol->SetBox(Vector3::ONE);
+
+	for (int i = 0; i < 25; i++)
+	{
+		float size = Random(1.5f, 4.5f);
+		Node* rockNode = scene_->CreateChild("Rock", LOCAL);
+		rockNode->SetPosition(Vector3(Random(130.0f, -130.0f), Random(1.0f, 2.0f), Random(10.0f, -280.0f)));
+		rockNode->SetScale(Vector3(size, size, size));
+		rockNode->SetRotation(Quaternion(Random(0.0f, 360.0f), Random(0.0f, 360.0f), Random(0.0f, 360.0f)));
+		StaticModel* rockModel = rockNode->CreateComponent<StaticModel>();
+		rockModel->SetModel(cache->GetResource<Model>("Models/LowPolyRock.mdl"));
+		rockModel->SetMaterial(cache->GetResource<Material>("Materials/lowpolyrock.xml"));
+		rockModel->SetCastShadows(true);
+		RigidBody* rockRB = rockNode->CreateComponent<RigidBody>();
+		rockRB->SetCollisionLayer(2);
+		CollisionShape* rockCol = rockNode->CreateComponent<CollisionShape>();
+		rockCol->SetBox(Vector3::ONE);
+	}
+
+	// Create pirate ship
+	Node* shipNode = scene_->CreateChild("PirateShip", LOCAL);
+	shipNode->SetPosition(Vector3(125.0f, -5.0f, -140.0f));
+	shipNode->SetScale(Vector3(10.0f, 10.0f, 10.0f));
+	shipNode->SetRotation(Quaternion(30.0f, 0.0f, 0.0f));
+	StaticModel* shipModel = shipNode->CreateComponent<StaticModel>();
+	shipModel->SetModel(cache->GetResource<Model>("Models/Ship.mdl"));
+	//shipModel->SetMaterial(cache->GetResource<Material>("Materials/wood.xml"));
+	shipModel->SetCastShadows(true);
+	RigidBody* shipRB = shipNode->CreateComponent<RigidBody>();
+	shipRB->SetCollisionLayer(2);
+	CollisionShape* shipCol = shipNode->CreateComponent<CollisionShape>();
+	shipCol->SetBox(Vector3::ONE);
 
 	// Creating the ocean water
 	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
@@ -136,10 +174,10 @@ void Main::CreateInitialScene()
 	Node* terrainNode = scene_->CreateChild("Terrain", LOCAL);
 	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
-	terrain->SetPatchSize(64);
+	terrain->SetPatchSize(32);
 	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f));
 	terrain->SetSmoothing(true);
-	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
+	terrain->SetHeightMap(cache->GetResource<Image>("Textures/heightmap2.png"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
 	terrain->SetOccluder(true);
 	RigidBody* body = terrainNode->CreateComponent<RigidBody>();
@@ -262,9 +300,10 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	float timeStep = eventData[P_TIMESTEP].GetFloat();
 
 	if (GetSubsystem<UI>()->GetFocusElement()) return;
-
-	UI* ui = GetSubsystem<UI>();
 	Input* input = GetSubsystem<Input>();
+	UI* ui = GetSubsystem<UI>();
+	window->SetVisible(isMenuVisible);
+
 	const float MOVE_SPEED = 40.0f;
 	const float MOUSE_SENSITIVITY = 0.1f;
 
@@ -307,6 +346,14 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (missile.missileTimer > 0)
 	{
 		missile.missileTimer -= timeStep;
+	}
+	if (!isMenuVisible)
+	{
+		GetSubsystem<Input>()->SetMouseVisible(false);
+	}
+	else
+	{
+		GetSubsystem<Input>()->SetMouseVisible(true);
 	}
 	if (!ui->GetCursor()->IsVisible())
 	{
@@ -374,6 +421,8 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 			if (!playerNode) continue; // If the current client doesn't have a player object, keeping looping!
 
+			tags.UpdateTags(playerNode);
+
 			if (playerNode->GetVar("Timer").GetFloat() > 0)
 			{
 				if (playerTimer <= 0 && playerNode->GetVar("Timer").GetFloat() > 0)
@@ -413,17 +462,20 @@ void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
 //
 // MENU CODE START
 //
-void Main::CreateGameMenu(ResourceCache* cache, Context* context, UI* ui)
+void Main::CreateGameMenu()
 {
+	InitMouseMode(MM_RELATIVE);
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+	UI* ui = GetSubsystem<UI>();
 	UIElement* root = ui->GetRoot();
 	XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
 	root->SetDefaultStyle(style);
 
-	SharedPtr<Cursor> cursor(new Cursor(context));
+	SharedPtr<Cursor> cursor(new Cursor(context_));
 	cursor->SetStyleAuto(style);
 	ui->SetCursor(cursor);
 
-	window = new Window(context);
+	window = new Window(context_);
 	root->AddChild(window);
 
 	window->SetMinWidth(384);
@@ -433,18 +485,14 @@ void Main::CreateGameMenu(ResourceCache* cache, Context* context, UI* ui)
 	window->SetName("Window");
 	window->SetStyleAuto();
 
-	connectButton = CreateButton("Connect", 24, window, cache);
-	serverAddressEdit = CreateLineEdit("localhost", 12, window, cache);
-	disconnectButton = CreateButton("Disconnect", 24, window, cache);
-	startServerButton = CreateButton("Start Server", 24, window, cache);
-	clientStartGame = CreateButton("Client: Start Game", 24, window, cache);
-	quitButton = CreateButton("Quit Game", 24, window, cache);
+	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
+	connectButton = CreateButton(font, "Connect", 24, window);
+	serverAddressEdit = CreateLineEdit("localhost", 12, window);
+	disconnectButton = CreateButton(font, "Disconnect", 24, window);
+	startServerButton = CreateButton(font, "Start Server", 24, window);
+	clientStartGame = CreateButton(font, "Client: Start Game", 24, window);
+	quitButton = CreateButton(font, "Quit Game", 24, window);
 
-	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
-	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, StartServer));
-	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, Connect));
-	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, Disconnect));
-	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, ClientStartGame));
 }
 
 void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
@@ -452,9 +500,8 @@ void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
 	engine_->Exit();
 }
 
-Button* Main::CreateButton(const String & text, int pHeight, Urho3D::Window * whichWindow, ResourceCache* cache)
+Button* Main::CreateButton(Font* font, const String & text, int pHeight, Urho3D::Window * whichWindow)
 {
-	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
 	Button* button = whichWindow->CreateChild<Button>();
 	button->SetMinHeight(pHeight);
 	button->SetStyleAuto();
@@ -462,17 +509,17 @@ Button* Main::CreateButton(const String & text, int pHeight, Urho3D::Window * wh
 	buttonText->SetFont(font, 12);
 	buttonText->SetAlignment(HA_CENTER, VA_CENTER);
 	buttonText->SetText(text);
-	whichWindow->AddChild(button);
+	//whichWindow->AddChild(button);
 	return button;
 }
 
-LineEdit* Main::CreateLineEdit(const String & text, int pHeight, Urho3D::Window * whichWindow, ResourceCache* cache)
+LineEdit* Main::CreateLineEdit(const String & text, int pHeight, Urho3D::Window * whichWindow)
 {
 	LineEdit* lineEdit = whichWindow->CreateChild<LineEdit>();
 	lineEdit->SetMinHeight(pHeight);
 	lineEdit->SetAlignment(HA_CENTER, VA_CENTER);
 	lineEdit->SetText(text);
-	whichWindow->AddChild(lineEdit);
+	//whichWindow->AddChild(lineEdit);
 	lineEdit->SetStyleAuto();
 	return lineEdit;
 }
@@ -615,12 +662,10 @@ void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 	{
 		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
 	}
-
-	textScore = ui->GetRoot()->CreateChild<Text>();
-	textScore->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
-	textScore->SetHorizontalAlignment(HA_CENTER);
-	textScore->SetVerticalAlignment(VA_CENTER);
-	textScore->SetPosition(0, ui->GetRoot()->GetHeight() / 1.5f);
+	for (int i = 0; i < 5; i++)
+	{
+		bubbles.Init(cache, scene_, graphics, Random(110.0f, 140.0f), Random(-105.0f, -160.0f));
+	}
 }
 
 // Handle the processing of controls by client and server // SERVER AND CLIENT FUNCTION
@@ -648,7 +693,7 @@ void Main::ClientFinishedLoading(StringHash eventType, VariantMap & eventData)
 
 }
 
-// Client is ready to start, establish a new connection and create a new client controlled object // CLIENT FUNCTION
+// Client is ready to start, establish a new connection and create a new client controlled object // SERVER FUNCTION
 void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 {
 	Log::WriteRaw("Event sent by the Client and running on Server: Client is ready to start the game.");
@@ -656,9 +701,9 @@ void Main::ClientReadyToStart(StringHash eventType, VariantMap & eventData)
 	using namespace ClientConnected;
 	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
 
+	clientCount++;
 	Node* playerNode = CreatePlayer();
 	serverObjects[newConnection] = playerNode;
-	clientCount++;
 
 	VariantMap remoteEventData;
 	remoteEventData[PLAYER_ID] = playerNode->GetID();
@@ -689,9 +734,24 @@ Node* Main::CreatePlayer()
 
 	Node* playerNode = scene_->CreateChild("Player");
 
-	playerNode->SetPosition(cameraNode_->GetPosition());
+	Vector3 position;
+	if (clientCount < 2)
+	{
+		position = Vector3(50.0f, 15.0f, 50.0f);
+	}
+	else if (clientCount == 2)
+	{
+		position = Vector3(60.0f, 15.0f, 50.0f);
+	}
+	else if (clientCount == 3)
+	{
+		position = Vector3(70.0f, 15.0f, 50.0f);
+	}
+
+	playerNode->SetPosition(position);
+	tags.InitPlayerTag(cache, scene_, playerNode, clientCount);
 	playerNode->SetScale(0.5f);
-	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
+	playerNode->SetRotation(Quaternion(0.0f, 180.0f, 270.0f));
 	StaticModel* model = playerNode->CreateComponent<StaticModel>();
 	model->SetModel(cache->GetResource<Model>("Models/Sub.mdl"));
 	model->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
@@ -795,7 +855,7 @@ void Main::ProcessCollisions(Connection* connection)
 					remoteEventData[CLIENT_SCORE] = playerNode->GetVar("Score");
 					connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
 				}
-				results.pop_back();
+				results.clear();
 			}
 		}
 	}
@@ -834,6 +894,11 @@ void Main::UpdateClientScore(StringHash eventType, VariantMap & eventData)
 	UI* ui = GetSubsystem<UI>();
 
 	textScore->SetText("SCORE: " + score);
+	textScore->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
+
+	textScore->SetHorizontalAlignment(HA_CENTER);
+	textScore->SetVerticalAlignment(VA_CENTER);
+	textScore->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
 }
 
 // When a boid is hit server reports back to the client and update the score UI // CLIENT FUNCTION
@@ -859,7 +924,7 @@ void Main::MoveCamera()
 	}
 }
 
-// Get client objects on the server and report their ID back // SERVER FUNCTION
+// Get client objects on the server and report their ID back // CLIENT FUNCTION
 void Main::ServerToClientObjectID(StringHash eventType, VariantMap & eventData)
 {
 	clientObjectID = eventData[PLAYER_ID].GetUInt();

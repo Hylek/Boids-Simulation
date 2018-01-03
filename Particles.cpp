@@ -10,6 +10,33 @@ Particles::~Particles()
 
 }
 
+void Particles::InitPlayerTag(ResourceCache* cache, Scene* scene, Node* playerObject, int clientCount)
+{
+	Sprite2D* playerOne = cache->GetResource<Sprite2D>("Urho2D/playerOne.png");
+	Sprite2D* playerTwo = cache->GetResource<Sprite2D>("Urho2D/playerTwo.png");
+
+	SharedPtr<Node> tagNode(scene->CreateChild("Tag"));
+	tagNode->SetPosition(Vector3(playerObject->GetPosition().x_, playerObject->GetPosition().y_ + 5.0f, playerObject->GetPosition().z_));
+	tagNode->SetRotation(Quaternion(0.0f, 0.0f, 0.0f));
+	tagNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
+
+	StaticSprite2D* staticSprite = tagNode->CreateComponent<StaticSprite2D>();
+
+	// Set blend mode
+	staticSprite->SetBlendMode(BLEND_ALPHA);
+
+
+	if (clientCount < 2)
+	{
+		staticSprite->SetSprite(playerOne);
+	}
+	if (clientCount == 2)
+	{
+		staticSprite->SetSprite(playerTwo);
+	}
+	newTagNode = tagNode;
+}
+
 void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
 {
 	// Urho3D Sample Project 24
@@ -70,5 +97,10 @@ void Particles::Update(float timeStep)
 		}
 		node->SetPosition(newPosition);
 	}
+}
+
+void Particles::UpdateTags(Node* playerObject)
+{
+	newTagNode->SetPosition(Vector3(playerObject->GetPosition().x_, playerObject->GetPosition().y_ + 5.0f, playerObject->GetPosition().z_));
 }
 

@@ -74,6 +74,7 @@ private:
 	Missile missile;
 	std::vector<BoidSet> boidGroups;
 	Particles bubbles;
+	Particles tags;
 
 	virtual void Start();
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
@@ -94,10 +95,10 @@ private:
 	SharedPtr<Window> window;
 	Text* textScore;
 
-	void CreateGameMenu(ResourceCache* cache, Context* context, UI* ui);
+	void CreateGameMenu();
 	void HandleQuit(StringHash eventType, VariantMap& eventData);
-	Button* CreateButton(const String& text, int pHeight, Urho3D::Window* whichWindow, ResourceCache* cache);
-	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow, ResourceCache* cache);
+	Button* CreateButton(Font* font, const String & text, int pHeight, Urho3D::Window * whichWindow);
+	LineEdit* CreateLineEdit(const String& text, int pHeight, Urho3D::Window* whichWindow);
 	// Menu code END
 
 	// Server code START

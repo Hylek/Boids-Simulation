@@ -13,19 +13,6 @@ float Boid::FRepel_Factor = 13.0f;
 float Boid::FAlign_Factor = 12.0f;
 float Boid::FMissileRepel_Factor = 25.0f;
 
-//float Boid::Range_FAttract = 25.0f;
-//float Boid::Range_FRepel = 8.0f;
-//float Boid::Range_FAlign = 15.0f;
-//float Boid::Range_FMissileRepel = 4.0f;
-//float Boid::FRange = 50.0f;
-//
-//float Boid::FAttract_Vmax = 5.0f;
-//
-//float Boid::FAttract_Factor = 15.0f;
-//float Boid::FRepel_Factor = 2.5f;
-//float Boid::FAlign_Factor = 2.0f;
-//float Boid::FMissileRepel_Factor = 25.0f;
-
 Boid::Boid()
 {
 
@@ -66,59 +53,6 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 void Boid::ComputeForce(Boid * boid, Missile * missile)
 {
 	force = Repel(boid) + Align(boid) + Attract(boid);
-
-	//Vector3 centerOfMass;
-	//Vector3 direction;
-	//float neighbourCount = 0;
-	//Vector3 attractForce = Vector3(0, 0, 0);
-	//Vector3 alignForce = Vector3(0, 0, 0);
-	//Vector3 repelForce = Vector3(0, 0, 0);
-	//force = Vector3(0, 0, 0);
-
-	//for (int i = 0; i < NUM_BOIDS; i++)
-	//{
-	//	if (this == &boid[i]) continue;
-
-	//	Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
-	//	Vector3 position = boid[i].rb->GetPosition();
-
-	//	float d = sep.Length();
-
-	//	if (d < Range_FAttract)
-	//	{
-	//		centerOfMass += boid[i].rb->GetPosition();
-	//		neighbourCount++;
-	//	}
-	//	if (d < Range_FAlign)
-	//	{
-	//		direction += boid[i].rb->GetLinearVelocity();
-	//		neighbourCount++;
-	//	}
-	//	if (d < Range_FRepel)
-	//	{
-	//		Vector3 delta = (rb->GetPosition() - boid[i].rb->GetPosition());
-	//		repelForce += (delta / delta.Length());
-	//		repelForce *= FRepel_Factor;
-	//		neighbourCount++;
-	//	}
-	//}
-	//if (neighbourCount > 0)
-	//{
-	//	// Attract
-	//	centerOfMass /= neighbourCount;
-	//	Vector3 dir = (centerOfMass - rb->GetPosition()).Normalized();
-	//	Vector3 vDesired = dir * FAttract_Vmax;
-	//	attractForce += (vDesired - rb->GetLinearVelocity()) * FAttract_Factor;
-
-	//	// Align
-	//	direction /= neighbourCount;
-	//	alignForce = (direction - rb->GetLinearVelocity()) * FAlign_Factor;
-
-	//	// Repel
-
-
-	//	force += repelForce + alignForce + attractForce;
-	//}
 }
 
 Vector3 Boid::Attract(Boid* boid)

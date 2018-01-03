@@ -1,0 +1,5 @@
+<material>
+	<technique name="Techniques/NoTexture.xml"/>
+	<parameter name="MatDiffColor" value="0.434124 0.393991 0.406081 1"/>
+	<parameter name="MatSpecColor" value="0.595505 0.595505 0.595505 101"/>
+</material>
