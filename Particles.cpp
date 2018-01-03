@@ -25,7 +25,6 @@ void Particles::InitPlayerTag(ResourceCache* cache, Scene* scene, Node* playerOb
 	// Set blend mode
 	staticSprite->SetBlendMode(BLEND_ALPHA);
 
-
 	if (clientCount < 2)
 	{
 		staticSprite->SetSprite(playerOne);
@@ -102,5 +101,6 @@ void Particles::Update(float timeStep)
 void Particles::UpdateTags(Node* playerObject)
 {
 	newTagNode->SetPosition(Vector3(playerObject->GetPosition().x_, playerObject->GetPosition().y_ + 5.0f, playerObject->GetPosition().z_));
+	newTagNode->SetRotation(Quaternion(0.0f, 0.0f, playerObject->GetRotation().z_));
 }
 

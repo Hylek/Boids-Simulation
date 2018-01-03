@@ -45,7 +45,7 @@ void Main::Start()
 
 	disconnectButton->SetVisible(false);
 	clientStartGame->SetVisible(false);
-	Sample::InitMouseMode(MM_FREE);
+	Sample::InitMouseMode(MM_RELATIVE);
 }
 
 void Main::SubscribeToEvents()
@@ -71,12 +71,6 @@ void Main::SubscribeToEvents()
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_PLAYERSREADY);
 	//GetSubsystem<Network>()->RegisterRemoteEvent(E_RESETGAME);
-
-	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
-	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, StartServer));
-	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, Connect));
-	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, Disconnect));
-	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, ClientStartGame));
 
 }
 
@@ -192,10 +186,10 @@ void Main::CreateInitialScene()
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
 	// Create bubble streams
-	//for (int i = 0; i < 100; i++)
-	//{
-	//	bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
-	//}
+	for (int i = 0; i < 50; i++)
+	{
+		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+	}
 }
 
 void Main::CreateLocalScene()
@@ -493,6 +487,13 @@ void Main::CreateGameMenu()
 	clientStartGame = CreateButton(font, "Client: Start Game", 24, window);
 	quitButton = CreateButton(font, "Quit Game", 24, window);
 
+
+	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
+	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, StartServer));
+	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, Connect));
+	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, Disconnect));
+	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, ClientStartGame));
+
 }
 
 void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
@@ -638,7 +639,6 @@ void Main::ClientDisconnecting(StringHash eventType, VariantMap & eventData)
 void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 {
 	UI* ui = GetSubsystem<UI>();
-	Log::WriteRaw("The client is starting the a new game");
 	if (clientObjectID == 0)
 	{
 		Network* network = GetSubsystem<Network>();
@@ -658,7 +658,8 @@ void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 	// Add the bubbles after the server has connected, as they do not affect the game and can be made locally.
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	Graphics* graphics = GetSubsystem<Graphics>();
-	for (int i = 0; i < 100; i++)
+
+	for (int i = 0; i < 50; i++)
 	{
 		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
 	}
@@ -833,6 +834,7 @@ void Main::ProcessCollisions(Connection* connection)
 	{
 		Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
 		PhysicsRaycastResult result;
+		std::vector<Ray> rays;
 		std::vector<PhysicsRaycastResult> results;
 		results.push_back(result);
 		scene_->GetComponent<PhysicsWorld>()->SphereCast(results.back(), cameraRay, 2, 3, 4);
@@ -842,6 +844,7 @@ void Main::ProcessCollisions(Connection* connection)
 			if (boid->GetName() == "Boid") // Update this for any future boids
 			{
 				boid->SetEnabled(false);
+				missileVector[j]->SetPosition(Vector3(-1000.0f, -1000.0f, -1000.0f));
 				missileVector[j]->SetEnabled(false);
 
 				if (missileVector[j]->GetVar("ID") == playerNode)
@@ -996,7 +999,7 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
 	controls.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
 	controls.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
-	controls.Set(CTRL_FIRE, input->GetKeyDown(KEY_E));
+	controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 	controls.Set(16, input->GetKeyDown(KEY_R));
 	controls.Set(32, input->GetKeyDown(KEY_F));
 
