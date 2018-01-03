@@ -26,22 +26,23 @@ Boid::~Boid()
 void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 {
 	node = scene->CreateChild("Boid");
+	node->SetRotation(Quaternion(0.0f, 0.0f, 0.0f));
 	node->SetScale(Random(0.5f, 1.15f));
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
 
-	model->SetModel(cache->GetResource<Model>("Models/Cone.mdl"));
-	int rand = Random(1, 4);
+	model->SetModel(cache->GetResource<Model>("Models/Fish.mdl"));
+	int rand = Random(1, 5);
 	switch (rand)
 	{
-	case 1: model->SetMaterial(cache->GetResource<Material>("Materials/Fish.xml")); break;
-	case 2: model->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml")); break;
-	case 3: model->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml")); break;
-	case 4: model->SetMaterial(cache->GetResource<Material>("Materials/Water.xml")); break;
+	case 1: model->SetMaterial(cache->GetResource<Material>("Materials/fishcolour1.xml")); break;
+	case 2: model->SetMaterial(cache->GetResource<Material>("Materials/fishcolour2.xml")); break;
+	case 3: model->SetMaterial(cache->GetResource<Material>("Materials/fishcolour3.xml")); break;
+	case 4: model->SetMaterial(cache->GetResource<Material>("Materials/fishcolour4.xml")); break;
 	}
 	model->SetCastShadows(true);
-	collider->SetBox(Vector3::ONE);
+	collider->SetBox(Vector3(1.0f, 1.5f, 1.0f));
 	rb->SetUseGravity(false);
 	rb->SetCollisionLayer(4);
 	rb->SetAngularFactor(Vector3(0, 1, 0));
@@ -191,11 +192,6 @@ void Boid::Update(float lastFrame)
 		direction = 100.0f;
 		rb->SetLinearVelocity(velocity.Normalized() * direction);
 	}
-
-	Vector3 vn = velocity.Normalized();
-	Vector3 cp = -vn.CrossProduct(Vector3(0.0f, 1.0f, 0.0f));
-	float dp = cp.DotProduct(vn);
-	rb->SetRotation(Quaternion(Acos(dp), cp));
 
 	Vector3 p = rb->GetPosition();
 	if (p.y_ < 10.0f)

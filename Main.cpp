@@ -43,8 +43,8 @@ void Main::Start()
 	hasGameStarted = false;
 	text = ui->GetRoot()->CreateChild<Text>();
 
-	disconnectButton->SetVisible(false);
-	clientStartGame->SetVisible(false);
+	//disconnectButton->SetVisible(false);
+	//clientStartGame->SetVisible(false);
 	Sample::InitMouseMode(MM_RELATIVE);
 }
 
@@ -94,7 +94,7 @@ void Main::CreateInitialScene()
 	Node* zoneNode = scene_->CreateChild("Zone", LOCAL);
 	Zone* zone = zoneNode->CreateComponent<Zone>();
 	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
-	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
+	zone->SetFogColor(Color(0.20f, 0.30f, 0.60f));
 	zone->SetFogStart(60.0f);
 	zone->SetFogEnd(300.0f);
 	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
@@ -107,7 +107,7 @@ void Main::CreateInitialScene()
 	light->SetCastShadows(true);
 	light->SetShadowBias(BiasParameters(0.00025f, 0.5f));
 	light->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
-	light->SetSpecularIntensity(0.5f);
+	light->SetSpecularIntensity(1.5f);
 	light->SetColor(Color(0.5f, 0.85f, 0.75f));
 
 	// Creating a treasure chest
@@ -296,7 +296,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (GetSubsystem<UI>()->GetFocusElement()) return;
 	Input* input = GetSubsystem<Input>();
 	UI* ui = GetSubsystem<UI>();
-	window->SetVisible(isMenuVisible);
+	//window_->SetVisible(isMenuVisible);
 
 	const float MOVE_SPEED = 40.0f;
 	const float MOUSE_SENSITIVITY = 0.1f;
@@ -341,14 +341,14 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		missile.missileTimer -= timeStep;
 	}
-	if (!isMenuVisible)
-	{
-		GetSubsystem<Input>()->SetMouseVisible(false);
-	}
-	else
-	{
-		GetSubsystem<Input>()->SetMouseVisible(true);
-	}
+	//if (!isMenuVisible)
+	//{
+	//	GetSubsystem<Input>()->SetMouseVisible(false);
+	//}
+	//else
+	//{
+	//	GetSubsystem<Input>()->SetMouseVisible(true);
+	//}
 	if (!ui->GetCursor()->IsVisible())
 	{
 		ignoreInputs = false;
@@ -434,14 +434,12 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		}
 	}
 	bubbles.Update(timeStep);
+	ui->GetCursor()->SetVisible(isMenuVisible); // THIS CODE CAUSES THE MENU TO BE UNRESPONSIVE
+	window_->SetVisible(isMenuVisible);
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 {
-	UI* ui = GetSubsystem<UI>();
-	Input* input = GetSubsystem<Input>();
-	ui->GetCursor()->SetVisible(isMenuVisible);
-	window->SetVisible(isMenuVisible);
 	MoveCamera();
 }
 
@@ -462,30 +460,64 @@ void Main::CreateGameMenu()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	UI* ui = GetSubsystem<UI>();
 	UIElement* root = ui->GetRoot();
-	XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
-	root->SetDefaultStyle(style);
+	XMLFile* uiStyle = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
+	root->SetDefaultStyle(uiStyle); //need to set default ui style
 
 	SharedPtr<Cursor> cursor(new Cursor(context_));
-	cursor->SetStyleAuto(style);
+	cursor->SetStyleAuto(uiStyle);
 	ui->SetCursor(cursor);
+	// Create the Window and add it to the UI's root node
+	window_ = new Window(context_);
+	root->AddChild(window_);
+	// Set Window size and layout settings
+	window_->SetMinWidth(384);
+	window_->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
+	window_->SetAlignment(HA_CENTER, VA_CENTER);
+	window_->SetName("Window");
+	window_->SetStyleAuto();	//Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
+	//Button* button = window_->CreateChild<Button>();
+	//button->SetMinHeight(24);
+	//button->SetStyleAuto();
+	//Text* buttonText = button->CreateChild<Text>();
+	//buttonText->SetFont(font, 12);
+	//buttonText->SetAlignment(HA_CENTER, VA_CENTER);
+	//buttonText->SetText("BUTTON 1");
+	//window_->AddChild(button);
+	//LineEdit* lineEdit = window_->CreateChild<LineEdit>();
+	//lineEdit->SetMinHeight(24);
+	//lineEdit->SetAlignment(HA_CENTER, VA_CENTER);
+	//lineEdit->SetText("LINEEDIT");
+	//window_->AddChild(lineEdit);
+	//lineEdit->SetStyleAuto();
 
-	window = new Window(context_);
-	root->AddChild(window);
+	//InitMouseMode(MM_RELATIVE);
+	//ResourceCache* cache = GetSubsystem<ResourceCache>();
+	//UI* ui = GetSubsystem<UI>();
+	//UIElement* root = ui->GetRoot();
+	//XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
+	//root->SetDefaultStyle(style);
 
-	window->SetMinWidth(384);
-	window->SetMinHeight(200);
-	window->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
-	window->SetAlignment(HA_CENTER, VA_CENTER);
-	window->SetName("Window");
-	window->SetStyleAuto();
+	//SharedPtr<Cursor> cursor(new Cursor(context_));
+	//cursor->SetStyleAuto(style);
+	//ui->SetCursor(cursor);
+
+	//window = new Window(context_);
+	//root->AddChild(window);
+
+	//window->SetMinWidth(384);
+	//window->SetMinHeight(200);
+	//window->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
+	//window->SetAlignment(HA_CENTER, VA_CENTER);
+	//window->SetName("Window");
+	//window->SetStyleAuto();
 
 	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
-	connectButton = CreateButton(font, "Connect", 24, window);
-	serverAddressEdit = CreateLineEdit("localhost", 12, window);
-	disconnectButton = CreateButton(font, "Disconnect", 24, window);
-	startServerButton = CreateButton(font, "Start Server", 24, window);
-	clientStartGame = CreateButton(font, "Client: Start Game", 24, window);
-	quitButton = CreateButton(font, "Quit Game", 24, window);
+	connectButton = CreateButton(font, "Connect", 24, window_);
+	serverAddressEdit = CreateLineEdit("localhost", 12, window_);
+	disconnectButton = CreateButton(font, "Disconnect", 24, window_);
+	startServerButton = CreateButton(font, "Start Server", 24, window_);
+	clientStartGame = CreateButton(font, "Client: Start Game", 24, window_);
+	quitButton = CreateButton(font, "Quit Game", 24, window_);
 
 
 	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
@@ -503,26 +535,25 @@ void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
 
 Button* Main::CreateButton(Font* font, const String & text, int pHeight, Urho3D::Window * whichWindow)
 {
-	Button* button = whichWindow->CreateChild<Button>();
-	button->SetMinHeight(pHeight);
+	Button* button = window_->CreateChild<Button>();
+	button->SetMinHeight(24);
 	button->SetStyleAuto();
 	Text* buttonText = button->CreateChild<Text>();
 	buttonText->SetFont(font, 12);
 	buttonText->SetAlignment(HA_CENTER, VA_CENTER);
 	buttonText->SetText(text);
-	//whichWindow->AddChild(button);
+	window_->AddChild(button);
 	return button;
 }
 
 LineEdit* Main::CreateLineEdit(const String & text, int pHeight, Urho3D::Window * whichWindow)
 {
-	LineEdit* lineEdit = whichWindow->CreateChild<LineEdit>();
-	lineEdit->SetMinHeight(pHeight);
+	LineEdit* lineEdit = window_->CreateChild<LineEdit>();
+	lineEdit->SetMinHeight(24);
 	lineEdit->SetAlignment(HA_CENTER, VA_CENTER);
 	lineEdit->SetText(text);
-	//whichWindow->AddChild(lineEdit);
-	lineEdit->SetStyleAuto();
-	return lineEdit;
+	window_->AddChild(lineEdit);
+	lineEdit->SetStyleAuto();	return lineEdit;
 }
 //
 // MENU CODE END
@@ -752,7 +783,7 @@ Node* Main::CreatePlayer()
 	playerNode->SetPosition(position);
 	tags.InitPlayerTag(cache, scene_, playerNode, clientCount);
 	playerNode->SetScale(0.5f);
-	playerNode->SetRotation(Quaternion(0.0f, 180.0f, 270.0f));
+	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
 	StaticModel* model = playerNode->CreateComponent<StaticModel>();
 	model->SetModel(cache->GetResource<Model>("Models/Sub.mdl"));
 	model->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));

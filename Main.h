@@ -61,11 +61,13 @@ class Main : public Sample
 public:
 	Main(Context* context);
 	~Main();
+
+	SharedPtr<Window> window_;
+	bool isMenuVisible = false;
 private:
 	unsigned short int swap = 1;
 	bool isServer = false;
 	bool hasGameStarted = false;
-	bool isMenuVisible = false;
 	bool ignoreInputs = false;
 	BoidSet gOne;
 	BoidSet gTwo;
@@ -92,7 +94,7 @@ private:
 	Button* clientStartGame;
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
-	SharedPtr<Window> window;
+	//SharedPtr<Window> window;
 	Text* textScore;
 
 	void CreateGameMenu();
