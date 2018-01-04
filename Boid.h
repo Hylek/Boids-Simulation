@@ -78,10 +78,6 @@ public:
 	RigidBody* rb;
 	CollisionShape* collider;
 	StaticModel* model;
-
-	int row;
-	int col;
-	int index;
 };
 
 class BoidSet
@@ -92,12 +88,7 @@ public:
 	~BoidSet();
 
 	Boid boidList[NUM_BOIDS];
-	std::vector<Boid> boidListVector;
 
 	void Init(ResourceCache *pRes, Scene* scene, float xPosMin, float xPosMax, float zPosMin, float zPosMax);
-	void InitGrid();
 	void Update(float tm);
-
-
-	int counter = 0;
 };

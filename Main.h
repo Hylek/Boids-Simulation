@@ -92,12 +92,12 @@ private:
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 	void CreateInitialScene();
 	void StartSinglePlayer(StringHash eventType, VariantMap& eventData);
+	void RestartSinglePlayer(StringHash eventType, VariantMap& eventData);
 	void AddObjects();
 	void SubscribeToEvents();
 	SharedPtr<Text> CreateText();
 	SharedPtr<Text> singlePlayerScoreUI;
 	SharedPtr<Text> singlePlayerTimerUI;
-
 	SharedPtr<Text> localPlayerScoreUI;
 	SharedPtr<Text> localPlayerTimerUI;
 
@@ -108,6 +108,7 @@ private:
 	Button* singlePlayerButton;
 	Button* startServerButton;
 	Button* clientStartGame;
+	Button* restartSinglePlayerButton;
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
 	Text* textScore;
@@ -157,13 +158,7 @@ private:
 	int CTRL_LEFT = 4;
 	int CTRL_RIGHT = 8;
 	int CTRL_FIRE = 1024;
-	HashMap<Node*, unsigned> missiles;
 	std::vector<Node*> missileVector;
-	std::vector<int> score;
-	int newScore = 0;
-	Vector3 clientDirection;
-	float clientYaw = 0;
-	float clientPitch = 0;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
 };

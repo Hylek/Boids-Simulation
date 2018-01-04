@@ -31,8 +31,8 @@ void Boid::Init(ResourceCache* cache, Scene* scene, Vector2 randomBoidPos)
 	rb = node->CreateComponent<RigidBody>();
 	model = node->CreateComponent<StaticModel>();
 	collider = node->CreateComponent<CollisionShape>();
-
 	model->SetModel(cache->GetResource<Model>("Models/Fish.mdl"));
+
 	int rand = Random(1, 5);
 	switch (rand)
 	{

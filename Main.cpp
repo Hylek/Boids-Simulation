@@ -6,16 +6,12 @@ static const StringHash E_CLIENTOBJECTAUTHORITY("ClientObjectAuthority");
 static const StringHash PLAYER_ID("IDENTITY");
 static const StringHash MISSILE_ID("MISSILEIDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
-static const StringHash E_STARTGAME("StartGame");
 static const StringHash E_SCOREUPDATE("ScoreUpdate");
 static const StringHash CLIENT_SCORE("ClientScores");
-static const StringHash VAR_SCORE("Score");
 static const StringHash E_SPAWNPLAYER("SpawnPlayer");
-static const StringHash E_HITBOID("HitBoid");
 static const StringHash E_GAMEOVER("GameOver");
 static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 static const StringHash E_PLAYERSREADY("PlayersAreReady");
-static const StringHash E_RESETGAME("ResetGame");
 
 Main::Main(Context* context) : Sample(context)
 {
@@ -42,8 +38,9 @@ void Main::Start()
 	hasGameStarted = false;
 	text = ui->GetRoot()->CreateChild<Text>();
 
-	//disconnectButton->SetVisible(false);
-	//clientStartGame->SetVisible(false);
+	disconnectButton->SetVisible(false);
+	clientStartGame->SetVisible(false);
+	restartSinglePlayerButton->SetVisible(false);
 	Sample::InitMouseMode(MM_RELATIVE);
 }
 
@@ -60,14 +57,13 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_GAMEOVER, URHO3D_HANDLER(Main, GameOver));
 	SubscribeToEvent(E_WAITINGONPLAYERS, URHO3D_HANDLER(Main, ServerWaitingOnMorePlayers));
 	SubscribeToEvent(E_PLAYERSREADY, URHO3D_HANDLER(Main, PlayersAreReadyToStart));
-	//SubscribeToEvent(E_RESETGAME, URHO3D_HANDLER(Main, RestartScene));
+
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_SCOREUPDATE);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_GAMEOVER);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_PLAYERSREADY);
-	//GetSubsystem<Network>()->RegisterRemoteEvent(E_RESETGAME);
 
 }
 
@@ -396,15 +392,14 @@ void Main::CreateGameMenu()
 	UI* ui = GetSubsystem<UI>();
 	UIElement* root = ui->GetRoot();
 	XMLFile* uiStyle = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
-	root->SetDefaultStyle(uiStyle); //need to set default ui style
+	root->SetDefaultStyle(uiStyle);
 
 	SharedPtr<Cursor> cursor(new Cursor(context_));
 	cursor->SetStyleAuto(uiStyle);
 	ui->SetCursor(cursor);
-	// Create the Window and add it to the UI's root node
+
 	window_ = new Window(context_);
 	root->AddChild(window_);
-	// Set Window size and layout settings
 	window_->SetMinWidth(384);
 	window_->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
 	window_->SetAlignment(HA_CENTER, VA_CENTER);
@@ -413,6 +408,7 @@ void Main::CreateGameMenu()
 
 	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
 	singlePlayerButton = CreateButton(font, "Single Player Mode", 24, window_);
+	restartSinglePlayerButton = CreateButton(font, "Restart Game", 24, window_);
 	connectButton = CreateButton(font, "Connect", 24, window_);
 	serverAddressEdit = CreateLineEdit("localhost", 12, window_);
 	disconnectButton = CreateButton(font, "Disconnect", 24, window_);
@@ -422,6 +418,7 @@ void Main::CreateGameMenu()
 
 	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
 	SubscribeToEvent(singlePlayerButton, E_RELEASED, URHO3D_HANDLER(Main, StartSinglePlayer));
+	SubscribeToEvent(restartSinglePlayerButton, E_RELEASED, URHO3D_HANDLER(Main, RestartSinglePlayer));
 	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, StartServer));
 	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, Connect));
 	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, Disconnect));
@@ -432,7 +429,6 @@ void Main::CreateGameMenu()
 void Main::StartSinglePlayer(StringHash eventType, VariantMap& eventData)
 {
 	AddObjects(); 
-	CreateText();
 	singlePlayerObject = CreatePlayer();
 	singlePlayerObject->SetPosition(Vector3(0.0f, 100.0f, 0.0f));
 	isSinglePlayer = true;
@@ -445,8 +441,35 @@ void Main::StartSinglePlayer(StringHash eventType, VariantMap& eventData)
 	singlePlayerScoreUI->SetVerticalAlignment(VA_TOP);
 	singlePlayerTimerUI->SetHorizontalAlignment(HA_RIGHT);
 	singlePlayerTimerUI->SetVerticalAlignment(VA_TOP);
-	singlePlayerButton->SetVisible(false);
 
+	singlePlayerButton->SetVisible(false);
+	connectButton->SetVisible(false);
+	startServerButton->SetVisible(false);
+	serverAddressEdit->SetVisible(false);
+
+	restartSinglePlayerButton->SetVisible(true);
+	isMenuVisible = !isMenuVisible;
+}
+
+void Main::RestartSinglePlayer(StringHash eventType, VariantMap& eventData)
+{
+	// Reload the scene
+	CreateInitialScene();
+
+	// Add the new objects
+	AddObjects();
+
+	// Create new player object and set position
+	singlePlayerObject = CreatePlayer();
+	singlePlayerObject->SetPosition(Vector3(0.0f, 100.0f, 0.0f));
+
+	// Reset variables
+	isSinglePlayer = true;
+	singlePlayerScore = 0;
+	singlePlayerTimer = 120;
+
+	// Update the menu
+	singlePlayerButton->SetVisible(false);
 	isMenuVisible = !isMenuVisible;
 }
 
@@ -525,6 +548,7 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 	gameTimer = 120;
 	isServer = true;
 	connectButton->SetVisible(false);
+	singlePlayerButton->SetVisible(false);
 	disconnectButton->SetVisible(true);
 	startServerButton->SetVisible(false);
 	serverAddressEdit->SetVisible(false);
@@ -550,6 +574,7 @@ void Main::Connect(StringHash eventType, VariantMap& eventData)
 	startServerButton->SetVisible(false);
 	clientStartGame->SetVisible(true);
 	serverAddressEdit->SetVisible(false);
+	singlePlayerButton->SetVisible(false);
 	isClient = true;
 	gameTimer = 120;
 }
@@ -559,8 +584,6 @@ void Main::ClientConnected(StringHash eventType, VariantMap & eventData)
 {
 	Log::WriteRaw("*HANDLECONNECTEDCLIENT CALLED: A client has connected to the server");
 	using namespace ClientConnected;
-
-	score.push_back(0);
 
 	Connection* newConnection = static_cast<Connection*>(eventData[P_CONNECTION].GetPtr());
 	newConnection->SetScene(scene_);
@@ -793,10 +816,8 @@ void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 	{
 		Node* newNode = CreateMissile();
 		missileVector.push_back(newNode);
-		//std::cout << missileVector.size() << std::endl;
 
 		Node* playerNode = serverObjects[playerConnection];
-		missiles[newNode] = playerNode->GetID();
 		newNode->SetVar("ID", playerNode);
 		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
@@ -804,14 +825,9 @@ void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 		VariantMap remoteEventData;
 		remoteEventData[MISSILE_ID] = newNode->GetID();
 
-		if (newNode->GetVar("ID") == playerNode) // Detecting which missile belongs to which client
-		{
-			playerConnection->SendRemoteEvent(E_HITBOID, true, remoteEventData);
-		}
 		if (playerNode->GetVar("Timer").GetFloat() <= 0)
 		{
 			playerNode->SetVar("Timer", 1);
-			std::cout << "Timer set" << std::endl;
 		}
 	}
 	if (isSinglePlayer)
@@ -983,7 +999,6 @@ void Main::ProcessClientControls()
 		VariantMap client = connection->GetIdentity();
 		const Controls& controls = connection->GetControls();
 		Quaternion rotation(0.0f, controls.yaw_, 0.0f);
-		clientDirection = Vector3(0, 0, rotation.x_);
 
 		if (gameTimer > 0 && clientCount >= 2)
 		{
