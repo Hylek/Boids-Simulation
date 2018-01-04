@@ -38,12 +38,9 @@
 #include <iostream>
 #include <vector>
 
-#include "Missile.h"
-
 using namespace Urho3D;
 
 static const short int NUM_BOIDS = 50;
-static const short int CELL_AMOUNT = 60;
 
 namespace Urho3D
 {
@@ -70,11 +67,10 @@ public:
 	~Boid();
 
 	void Init(ResourceCache* cache, Scene* scene, Vector2 randomPos);
-	void ComputeForce(Boid* boid, Missile* missile);
+	void ComputeForce(Boid* boid);
 	Vector3 Attract(Boid* boid);
 	Vector3 Align(Boid* boid);
 	Vector3 Repel(Boid* boid);
-	Vector3 MissileDodge(Boid* boid, Missile* missile);
 	void Update(float lastFrame);
 
 	Vector3 force;
@@ -100,30 +96,8 @@ public:
 
 	void Init(ResourceCache *pRes, Scene* scene, float xPosMin, float xPosMax, float zPosMin, float zPosMax);
 	void InitGrid();
-	void Update(float tm, Missile* missile);
+	void Update(float tm);
 
 
 	int counter = 0;
-	bool isGridActive = false;
-
-
-	int cellDivideSize = 20;
-
-	// OPTIMISATION CODE VARIABLES
-	//HashMap<Node*, gridIndex> specialCell; // ;)
-	//std::vector<HashMap<Node*, gridIndex>> specialGrid; // ;)
-	//HashMap<gridIndex, std::vector<Node*>> grid;
-	//HashMap<Vector2, Node*> grid;
-
-	std::vector<std::vector<std::vector<Boid>>> grid;
-	std::vector<std::vector<std::vector<int>>> gridIntTest;
-
-	void Occupy();
-	void Occupied();
-	bool CellChange();
-	void ClearGrid();
-	void SearchGrid();
-	void UpdateGrid();
-
-
 };

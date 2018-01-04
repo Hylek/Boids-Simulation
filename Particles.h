@@ -57,13 +57,15 @@ public:
 	Particles();
 	~Particles();
 
-	void Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
+	void InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
+	void InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
 	void InitPlayerTag(ResourceCache* cache, Scene* scene, Node* playerObject, int clientCount);
-	void InitGroup(ResourceCache* cache, Scene* scene, Graphics* graphics, int number, float xPos, float yPos);
 	void Update(float timeStep);
+	void UpdateSeaWeed(float timeStep);
 	void UpdateTags(Node* playerObject);
 
 private:
-	Vector<SharedPtr<Node>> spriteNodes_;
+	Vector<SharedPtr<Node>> bubbleNodes;
+	Vector<SharedPtr<Node>> weedNodes;
 	SharedPtr<Node> newTagNode;
 };

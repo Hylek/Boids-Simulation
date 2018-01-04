@@ -36,7 +36,7 @@ void Particles::InitPlayerTag(ResourceCache* cache, Scene* scene, Node* playerOb
 	newTagNode = tagNode;
 }
 
-void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
+void Particles::InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
 {
 	// Urho3D Sample Project 24
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/bubble.png");
@@ -60,26 +60,43 @@ void Particles::Init(ResourceCache* cache, Scene* scene, Graphics* graphics, flo
 		staticSprite->SetSprite(sprite);
 
 		// Add to sprite node vector
-		spriteNodes_.Push(spriteNode);
+		bubbleNodes.Push(spriteNode);
 
 		// Set move speed
 		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(2.0f, 2.0f), 0.0f));
 	}
 }
 
-void Particles::InitGroup(ResourceCache * cache, Scene * scene, Graphics * graphics, int number, float xPos, float yPos)
+void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
 {
-	for (int i = 0; i < number; i++)
+	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/seaweed.png");
+
+	if (!sprite) return;
+
+	for (unsigned i = 0; i < NUM_SPRITES; ++i)
 	{
-		Init(cache, scene, graphics, xPos, yPos);
+		float scaleAmount = Random(0.2f);
+		SharedPtr<Node> spriteNode(scene->CreateChild("SeaWeed", LOCAL));
+		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(90.0f, -100.0f), zPos));
+		spriteNode->SetRotation(Quaternion(0.0f, Random(0.0f, 360.0f), 0.0f));
+		spriteNode->SetScale(Vector3(scaleAmount, scaleAmount, scaleAmount));
+
+		StaticSprite2D* staticSprite = spriteNode->CreateComponent<StaticSprite2D>();
+
+		staticSprite->SetBlendMode(BLEND_ALPHA);
+		staticSprite->SetSprite(sprite);
+
+		weedNodes.Push(spriteNode);
+
+		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(2.0f, 2.0f), 0.0f));
 	}
 }
 
 void Particles::Update(float timeStep)
 {
-	for (unsigned i = 0; i < spriteNodes_.Size(); ++i)
+	for (unsigned i = 0; i < bubbleNodes.Size(); ++i)
 	{
-		SharedPtr<Node> node = spriteNodes_[i];
+		SharedPtr<Node> node = bubbleNodes[i];
 
 		Vector3 position = node->GetPosition();
 		Vector3 moveSpeed = node->GetVar(VAR_MOVESPEED).GetVector3();
@@ -90,6 +107,23 @@ void Particles::Update(float timeStep)
 			moveSpeed.x_ = -moveSpeed.x_;
 			node->SetVar(VAR_MOVESPEED, moveSpeed);
 		}
+		if (newPosition.y_ > 90.0f)
+		{
+			newPosition.y_ = Random(-25.0f);
+		}
+		node->SetPosition(newPosition);
+	}
+}
+
+void Particles::UpdateSeaWeed(float timeStep)
+{
+	for (unsigned i = 0; i < weedNodes.Size(); ++i)
+	{
+		SharedPtr<Node> node = weedNodes[i];
+
+		Vector3 position = node->GetPosition();
+		Vector3 moveSpeed = node->GetVar(VAR_MOVESPEED).GetVector3();
+		Vector3 newPosition = position + moveSpeed * timeStep;
 		if (newPosition.y_ > 90.0f)
 		{
 			newPosition.y_ = Random(-25.0f);

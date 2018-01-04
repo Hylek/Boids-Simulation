@@ -17,8 +17,6 @@ static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 static const StringHash E_PLAYERSREADY("PlayersAreReady");
 static const StringHash E_RESETGAME("ResetGame");
 
-// DON'T FORGET THE SEAWEED PARTICLE IDEA!!!
-
 Main::Main(Context* context) : Sample(context)
 {
 
@@ -58,7 +56,6 @@ void Main::SubscribeToEvents()
 	SubscribeToEvent(E_CLIENTDISCONNECTED, URHO3D_HANDLER(Main, ClientDisconnecting));
 	SubscribeToEvent(E_CLIENTISREADY, URHO3D_HANDLER(Main, ClientReadyToStart));
 	SubscribeToEvent(E_CLIENTOBJECTAUTHORITY, URHO3D_HANDLER(Main, ServerToClientObjectID));
-	SubscribeToEvent(E_HITBOID, URHO3D_HANDLER(Main, HitBoid));
 	SubscribeToEvent(E_SCOREUPDATE, URHO3D_HANDLER(Main, UpdateClientScore));
 	SubscribeToEvent(E_GAMEOVER, URHO3D_HANDLER(Main, GameOver));
 	SubscribeToEvent(E_WAITINGONPLAYERS, URHO3D_HANDLER(Main, ServerWaitingOnMorePlayers));
@@ -66,7 +63,6 @@ void Main::SubscribeToEvents()
 	//SubscribeToEvent(E_RESETGAME, URHO3D_HANDLER(Main, RestartScene));
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTISREADY);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_CLIENTOBJECTAUTHORITY);
-	GetSubsystem<Network>()->RegisterRemoteEvent(E_HITBOID);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_SCOREUPDATE);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_GAMEOVER);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
@@ -187,92 +183,11 @@ void Main::CreateInitialScene()
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
 	// Create bubble streams
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < 40; i++)
 	{
-		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+		bubbles.InitBubbles(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+		seaweed.InitWeeds(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
 	}
-}
-
-void Main::CreateLocalScene()
-{
-	ResourceCache* cache = GetSubsystem<ResourceCache>();
-	Graphics* graphics = GetSubsystem<Graphics>();
-
-	scene_ = new Scene(context_);
-	scene_->CreateComponent<Octree>(LOCAL);
-	scene_->CreateComponent<PhysicsWorld>(LOCAL);
-
-	cameraNode_ = new Node(context_);
-	Camera* cam = cameraNode_->CreateComponent<Camera>(LOCAL);
-	cameraNode_->SetPosition(Vector3(Random(30.0f), 40.0f, Random(30.0f)));
-	cam->SetFarClip(1000.0f);
-
-	GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, cam));
-
-	// Creating ambient light and fog
-	Node* zoneNode = scene_->CreateChild("Zone", LOCAL);
-	Zone* zone = zoneNode->CreateComponent<Zone>();
-	zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
-	zone->SetFogColor(Color(0.0f, 0.19f, 0.25f));
-	zone->SetFogStart(100.0f);
-	zone->SetFogEnd(1000.0f);
-	zone->SetBoundingBox(BoundingBox(-1000.0f, 1000.0f));
-
-	// Creating a directional light
-	Node* lightNode = scene_->CreateChild("DirectionalLight", LOCAL);
-	lightNode->SetDirection(Vector3(0.3f, -0.5f, 0.425f));
-	Light* light = lightNode->CreateComponent<Light>();
-	light->SetLightType(LIGHT_DIRECTIONAL);
-	light->SetCastShadows(true);
-	light->SetShadowBias(BiasParameters(0.00025f, 0.5f));
-	light->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
-	light->SetSpecularIntensity(0.5f);
-	light->SetColor(Color(0.5f, 0.85f, 0.75f));
-
-	// Creating a treasure chest
-	Node* boxNode = scene_->CreateChild("TreasureChest", LOCAL);
-	boxNode->SetPosition(Vector3(-140.0f, 17.7f, 50.0f));
-	boxNode->SetScale(Vector3(1.0f, 1.0f, 1.0f));
-	boxNode->SetRotation(Quaternion(0.0f, -100.0f, 0.0f));
-	StaticModel* boxObject = boxNode->CreateComponent<StaticModel>();
-	boxObject->SetModel(cache->GetResource<Model>("Models/TreasureChestShut.mdl"));
-	boxObject->SetMaterial(cache->GetResource<Material>("Materials/ChestText.xml"));
-	boxObject->SetCastShadows(true);
-	RigidBody* boxRB = boxNode->CreateComponent<RigidBody>();
-	CollisionShape* boxCol = boxNode->CreateComponent<CollisionShape>();
-	boxCol->SetBox(Vector3::ONE);
-
-	// Creating the ocean water
-	Node* oceanNode = scene_->CreateChild("OceanTop", LOCAL);
-	oceanNode->SetPosition(Vector3(0.0f, 100.0f, 0.0f));
-	oceanNode->SetScale(Vector3(2000.0f, 0.0f, 2000.0f));
-	StaticModel* oceanObject = oceanNode->CreateComponent<StaticModel>();
-	oceanObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	RigidBody* body = oceanNode->CreateComponent<RigidBody>();
-	body->SetCollisionLayer(2);
-	oceanObject->SetMaterial(cache->GetResource<Material>("Materials/Water.xml"));
-	oceanObject->SetCastShadows(true);
-
-	// Creating the terrains
-	Node* terrainNode = scene_->CreateChild("Terrain", LOCAL);
-	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
-	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
-	terrain->SetPatchSize(64);
-	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f));
-	terrain->SetSmoothing(true);
-	terrain->SetHeightMap(cache->GetResource<Image>("Textures/HeightMap.jpg"));
-	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
-	terrain->SetOccluder(true);
-	RigidBody* oceanBody = terrainNode->CreateComponent<RigidBody>();
-	body->SetCollisionLayer(2);
-	CollisionShape* collider = terrainNode->CreateComponent<CollisionShape>();
-	collider->SetTerrain();
-
-	// Creating the skybox
-	Node* skyNode = scene_->CreateChild("Sky", LOCAL);
-	Skybox* skybox = skyNode->CreateComponent<Skybox>();
-	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 }
 
 void Main::AddObjects()
@@ -280,12 +195,10 @@ void Main::AddObjects()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	// Create objects
-	gOne.Init(cache, scene_, Random(20.0f, 30.0f), Random(20.0f, 30.0f), Random(20.0f, 30.0f), Random(20.0f, 30.0f));
-	gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f));
-	gThree.Init(cache, scene_, Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f));
-	gFour.Init(cache, scene_, Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f));
-
-	missile.CreateMissile(cache, scene_);
+	gOne.Init(cache, scene_, Random(20.0f, 25.0f), Random(20.0f, 25.0f), Random(20.0f, 25.0f), Random(20.0f, 25.0f));
+	gTwo.Init(cache, scene_, Random(190.0f, 195.0f), Random(190.0f, 195.0f), Random(190.0f, 195.0f), Random(190.0f, 195.0f));
+	gThree.Init(cache, scene_, Random(-20.0f, -25.0f), Random(-20.0f, -25.0f), Random(-20.0f, -25.0f), Random(-20.0f, -25.0f));
+	gFour.Init(cache, scene_, Random(80.0f, 85.0f), Random(80.0f, 85.0f), Random(80.0f, 85.0f), Random(80.0f, 85.0f));
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -330,21 +243,11 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
 		}
-		//if (input->GetMouseButtonDown(MOUSEB_LEFT))
-		//{
-		//	missile.isActive = true;
-		//}
 	}
 	if (input->GetKeyPress(KEY_M))
 	{
 		isMenuVisible = !isMenuVisible;
 	}
-	if (missile.missileTimer > 0)
-	{
-		missile.missileTimer -= timeStep;
-	}
-
-
 	if (!isMenuVisible)
 	{
 		ignoreInputs = false;
@@ -356,30 +259,20 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 	if (isServer)
 	{
-		gOne.Update(timeStep, &missile);
-		gTwo.Update(timeStep, &missile);
-		gThree.Update(timeStep, &missile);
-		gFour.Update(timeStep, &missile);
+		gOne.Update(timeStep);
+		gTwo.Update(timeStep);
+		gThree.Update(timeStep);
+		gFour.Update(timeStep);
 
-		if (gameTimer > 0 && clientCount >= 2)
+		if (clientCount < 2 || clientsAreReady)
 		{
-			gameTimer -= timeStep;
-			text->SetVisible(false);
-			std::cout << gameTimer << std::endl;
+			gameTimer = 120;
 		}
 		if (gameTimer <= 0)
 		{
 			std::cout << "GAME OVER" << std::endl;
 			text->SetVisible(true);
 			// GAME OVER
-		}
-		if (clientCount < 2)
-		{
-			gameTimer = 60;
-		}
-		if (isGameOver && resetTimer > 0)
-		{
-			resetTimer -= timeStep;
 		}
 
 		Network* network = GetSubsystem<Network>();
@@ -409,12 +302,33 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 		}
 	}
+	if (isServer || isClient)
+	{
+		if (gameTimer > 0 && clientCount >= 2 || clientsAreReady)
+		{
+			gameTimer -= timeStep;
+
+			if (clientsAreReady)
+			{
+				String timerString = String(gameTimer);
+				localPlayerTimerUI->SetText("TIMER: " + timerString);
+			}
+
+			text->SetVisible(false);
+			std::cout << gameTimer << std::endl;
+		}
+		if (isGameOver && resetTimer > 0)
+		{
+			resetTimer -= timeStep;
+		}
+	}
+
 	if (isSinglePlayer)
 	{
-		gOne.Update(timeStep, &missile);
-		gTwo.Update(timeStep, &missile);
-		gThree.Update(timeStep, &missile);
-		gFour.Update(timeStep, &missile);
+		gOne.Update(timeStep);
+		gTwo.Update(timeStep);
+		gThree.Update(timeStep);
+		gFour.Update(timeStep);
 
 		if (singlePlayerTimer > 0)
 		{
@@ -423,6 +337,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 			String timerString = String(singlePlayerTimer);
 			singlePlayerTimerUI->SetText("TIMER: " + timerString);
+			if (singlePlayerTimer <= 0) singlePlayerTimer = 0;
 		}
 		else if (singlePlayerTimer <= 0)
 		{
@@ -450,17 +365,16 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 			Quaternion rotation(0.0f, yaw_, 0.0f);
 			if (input->GetKeyDown(KEY_W))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(singlePlayerObject->GetWorldDirection() * 180.0f);
 			if (input->GetKeyDown(KEY_S))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(-singlePlayerObject->GetWorldDirection() * 180.0f);
-			if (input->GetKeyDown(KEY_A))	singlePlayerObject->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);
-			if (input->GetKeyDown(KEY_D))	singlePlayerObject->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);
+			if (input->GetKeyDown(KEY_A))	singlePlayerObject->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 50.0f);
+			if (input->GetKeyDown(KEY_D))	singlePlayerObject->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 50.0f);
 			if (input->GetMouseButtonDown(MOUSEB_LEFT))	ShootMissile(NULL, singlePlayerObject);
 			if (input->GetKeyDown(KEY_R))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 80.0f);
 			if (input->GetKeyDown(KEY_F))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 80.0f);
 		}
 		ProcessCollisions(NULL);
 	}
-
-
 	bubbles.Update(timeStep);
+	seaweed.UpdateSeaWeed(timeStep);
 }
 
 void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
@@ -468,16 +382,8 @@ void Main::HandlePostUpdate(StringHash eventType, VariantMap& eventData)
 	MoveCamera();
 	UI* ui = GetSubsystem<UI>();
 	Input* input = GetSubsystem<Input>();
-	//ui->GetCursor()->SetVisible(isMenuVisible);
+	//ui->GetCursor()->SetVisible(isMenuVisible); // THIS BREAKS MY MENU
 	window_->SetVisible(isMenuVisible);
-}
-
-void Main::HandleCollision(StringHash eventType, VariantMap& eventData)
-{
-	//printf("Collision detected\n");
-	unsigned missileID = eventData[MISSILE_ID].GetUInt();
-	//std::cout << "MISSILE ID OF COLLISION: " << missileID << std::endl;
-
 }
 
 //
@@ -539,6 +445,7 @@ void Main::StartSinglePlayer(StringHash eventType, VariantMap& eventData)
 	singlePlayerScoreUI->SetVerticalAlignment(VA_TOP);
 	singlePlayerTimerUI->SetHorizontalAlignment(HA_RIGHT);
 	singlePlayerTimerUI->SetVerticalAlignment(VA_TOP);
+	singlePlayerButton->SetVisible(false);
 
 	isMenuVisible = !isMenuVisible;
 }
@@ -615,7 +522,7 @@ void Main::StartServer(StringHash eventType, VariantMap& eventData)
 	network->StartServer(SERVER_PORT);
 
 	isMenuVisible = !isMenuVisible;
-	gameTimer = 60;
+	gameTimer = 120;
 	isServer = true;
 	connectButton->SetVisible(false);
 	disconnectButton->SetVisible(true);
@@ -643,6 +550,8 @@ void Main::Connect(StringHash eventType, VariantMap& eventData)
 	startServerButton->SetVisible(false);
 	clientStartGame->SetVisible(true);
 	serverAddressEdit->SetVisible(false);
+	isClient = true;
+	gameTimer = 120;
 }
 
 // When a client has connected, refresh the scene and create a new connection. // SERVER FUNCTION
@@ -732,13 +641,20 @@ void Main::ClientStartGame(StringHash eventType, VariantMap & eventData)
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	Graphics* graphics = GetSubsystem<Graphics>();
 
+	localPlayerScoreUI = CreateText();
+	localPlayerTimerUI = CreateText();
+	localPlayerScoreUI->SetHorizontalAlignment(HA_LEFT);
+	localPlayerScoreUI->SetVerticalAlignment(VA_TOP);
+	localPlayerTimerUI->SetHorizontalAlignment(HA_RIGHT);
+	localPlayerTimerUI->SetVerticalAlignment(VA_TOP);
+
 	for (int i = 0; i < 50; i++)
 	{
-		bubbles.Init(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+		bubbles.InitBubbles(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
 	}
 	for (int i = 0; i < 5; i++)
 	{
-		bubbles.Init(cache, scene_, graphics, Random(110.0f, 140.0f), Random(-105.0f, -160.0f));
+		bubbles.InitBubbles(cache, scene_, graphics, Random(110.0f, 140.0f), Random(-105.0f, -160.0f));
 	}
 }
 
@@ -831,7 +747,7 @@ Node* Main::CreatePlayer()
 	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
 	StaticModel* model = playerNode->CreateComponent<StaticModel>();
 	model->SetModel(cache->GetResource<Model>("Models/Sub.mdl"));
-	model->SetMaterial(cache->GetResource<Material>("Materials/StoneSmall.xml"));
+	model->SetMaterial(cache->GetResource<Material>("Materials/submarine.xml"));
 
 	RigidBody* body = playerNode->CreateComponent<RigidBody>();
 	body->SetLinearDamping(0.65f);
@@ -839,10 +755,10 @@ Node* Main::CreatePlayer()
 	body->SetCollisionMask(4);
 	body->SetAngularFactor(Vector3(0, 1, 0));
 	body->SetCollisionMask(6);
-	body->SetMass(5.0f);
+	body->SetMass(3.0f);
 	body->SetUseGravity(false);
 	CollisionShape* shape = playerNode->CreateComponent<CollisionShape>();
-	shape->SetBox(Vector3(3.0f, 5.0f, 15.0f));
+	shape->SetBox(Vector3(8.0f, 15.0f, 20.0f));
 
 	return playerNode;
 }
@@ -884,8 +800,6 @@ void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 		newNode->SetVar("ID", playerNode);
 		newNode->SetPosition(Vector3(playerNode->GetPosition().x_, playerNode->GetPosition().y_ + 1.0f, playerNode->GetPosition().z_ + 1.0f));
 		newNode->GetComponent<RigidBody>()->ApplyImpulse(playerNode->GetWorldDirection() * 500.0f);
-
-		SubscribeToEvent(newNode, E_NODECOLLISION, URHO3D_HANDLER(Main, HandleCollision));
 
 		VariantMap remoteEventData;
 		remoteEventData[MISSILE_ID] = newNode->GetID();
@@ -930,7 +844,7 @@ void Main::ProcessCollisions(Connection* connection)
 			if (results.back().body_)
 			{
 				Node* boid = results.back().body_->GetNode();
-				if (boid->GetName() == "Boid") // Update this for any future boids
+				if (boid->GetName() == "Boid")
 				{
 					boid->SetEnabled(false);
 					missileVector[j]->SetPosition(Vector3(-1000.0f, -1000.0f, -1000.0f));
@@ -996,10 +910,11 @@ void Main::ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventDa
 	text->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
 }
 
-// There are enough players to start the game, hide the text // SERVER FUNCTION
+// There are enough players to start the game, hide the text // CLIENT FUNCTION
 void Main::PlayersAreReadyToStart(StringHash eventType, VariantMap & eventData)
 {
 	text->SetVisible(false);
+	clientsAreReady = true;
 }
 
 // Client recieves it's score from the server // CLIENT FUNCTION
@@ -1008,23 +923,8 @@ void Main::UpdateClientScore(StringHash eventType, VariantMap & eventData)
 	int score = eventData[CLIENT_SCORE].GetInt();
 	std::cout << "CLIENT SCORE IS: " << score << std::endl;
 
-	ResourceCache* cache = GetSubsystem<ResourceCache>();
-	UI* ui = GetSubsystem<UI>();
-
-	textScore->SetText("SCORE: " + score);
-	textScore->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
-
-	textScore->SetHorizontalAlignment(HA_CENTER);
-	textScore->SetVerticalAlignment(VA_CENTER);
-	textScore->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
-}
-
-// When a boid is hit server reports back to the client and update the score UI // CLIENT FUNCTION
-void Main::HitBoid(StringHash eventType, VariantMap & eventData)
-{
-	//printf("YOU FIRED A MISSILE\n");
-	unsigned value = eventData[MISSILE_ID].GetUInt();
-	std::cout << value << std::endl;
+	String scoreString = String(score);
+	localPlayerScoreUI->SetText("SCORE: " + scoreString);
 }
 
 // Move the camera for the client with it's controlled object on the server // CLIENT FUNCTION

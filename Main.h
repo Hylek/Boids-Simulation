@@ -43,7 +43,6 @@
 
 #include "Sample.h"
 #include "Boid.h"
-#include "Missile.h"
 #include "Particles.h"
 
 using namespace Urho3D;
@@ -67,6 +66,7 @@ public:
 private:
 	unsigned short int swap = 1;
 	bool isServer = false;
+	bool isClient = false;
 	bool hasGameStarted = false;
 	bool ignoreInputs = false;
 	bool isSinglePlayer = false;
@@ -74,15 +74,16 @@ private:
 	BoidSet gTwo;
 	BoidSet gThree;
 	BoidSet gFour;
-	Missile missile;
 	std::vector<BoidSet> boidGroups;
 	Particles bubbles;
+	Particles seaweed;
 	Particles tags;
 	Node* singlePlayerObject;
 	int singlePlayerScore;
 	int oldSinglePlayerScore = 0;
 	float singlePlayerTimer;
 	bool singlePlayerControls = false;
+	bool clientsAreReady = false;
 	float singlePlayerMissileTimer = 0;
 	int spSwap = 0;
 
@@ -90,13 +91,15 @@ private:
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 	void CreateInitialScene();
-	void CreateLocalScene();
 	void StartSinglePlayer(StringHash eventType, VariantMap& eventData);
 	void AddObjects();
 	void SubscribeToEvents();
 	SharedPtr<Text> CreateText();
 	SharedPtr<Text> singlePlayerScoreUI;
 	SharedPtr<Text> singlePlayerTimerUI;
+
+	SharedPtr<Text> localPlayerScoreUI;
+	SharedPtr<Text> localPlayerTimerUI;
 
 	// Menu code START
 	Button* connectButton;
@@ -107,7 +110,6 @@ private:
 	Button* clientStartGame;
 	LineEdit* serverAddressEdit;
 	Texture* uiTexture;
-	//SharedPtr<Window> window;
 	Text* textScore;
 
 	void CreateGameMenu();
@@ -134,16 +136,13 @@ private:
 	void ClientConnected(StringHash eventType, VariantMap & eventData);
 	void ClientDisconnecting(StringHash eventType, VariantMap & eventData);
 	void PlayersAreReadyToStart(StringHash eventType, VariantMap & eventData);
-	void HandleCollision(StringHash eventType, VariantMap& eventData);
 	void ClientStartGame(StringHash eventType, VariantMap& eventData);
-	void RestartScene(StringHash eventType, VariantMap& eventData);
 	void GameOver(StringHash eventType, VariantMap & eventData);
 	void PhysicsPreStep(StringHash eventType, VariantMap & eventData);
 	void ClientFinishedLoading(StringHash eventType, VariantMap & eventData);
 	void ServerWaitingOnMorePlayers(StringHash eventType, VariantMap & eventData);
 	void ClientReadyToStart(StringHash eventType, VariantMap & eventData);
 	void UpdateClientScore(StringHash eventType, VariantMap & eventData);
-	void HitBoid(StringHash eventType, VariantMap & eventData);
 	void ServerToClientObjectID(StringHash eventType, VariantMap & eventData);
 	void ShootMissile(Connection* playerConnection, Node* client);
 	void ProcessCollisions(Connection* connection);
@@ -167,5 +166,4 @@ private:
 	float clientPitch = 0;
 	void ProcessClientControls();
 	Controls ClientToServerControls();
-
 };
