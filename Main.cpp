@@ -40,6 +40,7 @@ void Main::Start()
 	OpenConsoleWindow();
 
 	isServer = false;
+	isSinglePlayer = false;
 	hasGameStarted = false;
 	text = ui->GetRoot()->CreateChild<Text>();
 
@@ -296,6 +297,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (GetSubsystem<UI>()->GetFocusElement()) return;
 	Input* input = GetSubsystem<Input>();
 	UI* ui = GetSubsystem<UI>();
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	//window_->SetVisible(isMenuVisible);
 
 	const float MOVE_SPEED = 40.0f;
@@ -407,6 +409,57 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 		}
 	}
+	if (isSinglePlayer)
+	{
+		gOne.Update(timeStep, &missile);
+		gTwo.Update(timeStep, &missile);
+		gThree.Update(timeStep, &missile);
+		gFour.Update(timeStep, &missile);
+
+		if (singlePlayerTimer > 0)
+		{
+			singlePlayerTimer -= timeStep;
+			singlePlayerControls = true;
+
+			String timerString = String(singlePlayerTimer);
+			singlePlayerTimerUI->SetText("TIMER: " + timerString);
+		}
+		else if (singlePlayerTimer <= 0)
+		{
+			singlePlayerControls = false;
+		}
+		if (singlePlayerMissileTimer > 0)
+		{
+			singlePlayerMissileTimer -= timeStep;
+		}
+
+		if (singlePlayerScore != oldSinglePlayerScore)
+		{
+			String scoreString = String(singlePlayerScore);
+
+			singlePlayerScoreUI->SetText("SCORE: " + scoreString);
+			oldSinglePlayerScore = singlePlayerScore;
+		}
+		if (singlePlayerObject->GetPosition().y_ > 100.0f)
+		{
+			singlePlayerObject->SetPosition(Vector3(singlePlayerObject->GetPosition().x_, 100.0f, singlePlayerObject->GetPosition().z_));
+		}
+
+		if (singlePlayerControls)
+		{
+			Quaternion rotation(0.0f, yaw_, 0.0f);
+			if (input->GetKeyDown(KEY_W))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(singlePlayerObject->GetWorldDirection() * 180.0f);
+			if (input->GetKeyDown(KEY_S))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(-singlePlayerObject->GetWorldDirection() * 180.0f);
+			if (input->GetKeyDown(KEY_A))	singlePlayerObject->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);
+			if (input->GetKeyDown(KEY_D))	singlePlayerObject->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);
+			if (input->GetMouseButtonDown(MOUSEB_LEFT))	ShootMissile(NULL, singlePlayerObject);
+			if (input->GetKeyDown(KEY_R))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 80.0f);
+			if (input->GetKeyDown(KEY_F))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 80.0f);
+		}
+		ProcessCollisions(NULL);
+	}
+
+
 	bubbles.Update(timeStep);
 }
 
@@ -453,6 +506,7 @@ void Main::CreateGameMenu()
 	window_->SetStyleAuto();
 
 	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
+	singlePlayerButton = CreateButton(font, "Single Player Mode", 24, window_);
 	connectButton = CreateButton(font, "Connect", 24, window_);
 	serverAddressEdit = CreateLineEdit("localhost", 12, window_);
 	disconnectButton = CreateButton(font, "Disconnect", 24, window_);
@@ -460,13 +514,58 @@ void Main::CreateGameMenu()
 	clientStartGame = CreateButton(font, "Client: Start Game", 24, window_);
 	quitButton = CreateButton(font, "Quit Game", 24, window_);
 
-
 	SubscribeToEvent(quitButton, E_RELEASED, URHO3D_HANDLER(Main, HandleQuit));
+	SubscribeToEvent(singlePlayerButton, E_RELEASED, URHO3D_HANDLER(Main, StartSinglePlayer));
 	SubscribeToEvent(startServerButton, E_RELEASED, URHO3D_HANDLER(Main, StartServer));
 	SubscribeToEvent(connectButton, E_RELEASED, URHO3D_HANDLER(Main, Connect));
 	SubscribeToEvent(disconnectButton, E_RELEASED, URHO3D_HANDLER(Main, Disconnect));
 	SubscribeToEvent(clientStartGame, E_RELEASED, URHO3D_HANDLER(Main, ClientStartGame));
 
+}
+
+void Main::StartSinglePlayer(StringHash eventType, VariantMap& eventData)
+{
+	AddObjects(); 
+	CreateText();
+	singlePlayerObject = CreatePlayer();
+	singlePlayerObject->SetPosition(Vector3(0.0f, 100.0f, 0.0f));
+	isSinglePlayer = true;
+	singlePlayerScore = 0;
+	singlePlayerTimer = 120;
+
+	singlePlayerScoreUI = CreateText();
+	singlePlayerTimerUI = CreateText();
+	singlePlayerScoreUI->SetHorizontalAlignment(HA_LEFT);
+	singlePlayerScoreUI->SetVerticalAlignment(VA_TOP);
+	singlePlayerTimerUI->SetHorizontalAlignment(HA_RIGHT);
+	singlePlayerTimerUI->SetVerticalAlignment(VA_TOP);
+
+	isMenuVisible = !isMenuVisible;
+}
+
+SharedPtr<Text> Main::CreateText()
+{
+	ResourceCache* cache = GetSubsystem<ResourceCache>();
+
+	// Construct new Text object
+	SharedPtr<Text> textUI(new Text(context_));
+	//singlePlayerScoreUI = textUI;
+
+	// Set String to display
+	//textUI->SetText("SCORE: 0");
+
+	// Set font and text color
+	textUI->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 24);
+	textUI->SetColor(Color(1.0f, 1.0f, 1.0f));
+
+	// Align Text center-screen
+	textUI->SetHorizontalAlignment(HA_CENTER);
+	textUI->SetVerticalAlignment(VA_CENTER);
+
+	// Add Text instance to the UI root element
+	GetSubsystem<UI>()->GetRoot()->AddChild(textUI);
+
+	return textUI;
 }
 
 void Main::HandleQuit(StringHash eventType, VariantMap& eventData)
@@ -724,7 +823,10 @@ Node* Main::CreatePlayer()
 	}
 
 	playerNode->SetPosition(position);
-	tags.InitPlayerTag(cache, scene_, playerNode, clientCount);
+	if (isServer)
+	{
+		tags.InitPlayerTag(cache, scene_, playerNode, clientCount);
+	}
 	playerNode->SetScale(0.5f);
 	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
 	StaticModel* model = playerNode->CreateComponent<StaticModel>();
@@ -771,7 +873,7 @@ Node* Main::CreateMissile()
 // Client has requested a missile, create one and fire it. // SERVER FUNCTION
 void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 {
-	if (playerObject->GetVar("Timer").GetFloat() <= 0)
+	if (playerObject->GetVar("Timer").GetFloat() <= 0 && !isSinglePlayer)
 	{
 		Node* newNode = CreateMissile();
 		missileVector.push_back(newNode);
@@ -798,41 +900,80 @@ void Main::ShootMissile(Connection* playerConnection, Node* playerObject)
 			std::cout << "Timer set" << std::endl;
 		}
 	}
+	if (isSinglePlayer)
+	{
+		if (singlePlayerMissileTimer <= 0)
+		{
+			Node* newNode = CreateMissile();
+			missileVector.push_back(newNode);
+			newNode->SetPosition(Vector3(singlePlayerObject->GetPosition().x_, singlePlayerObject->GetPosition().y_ + 1.0f, singlePlayerObject->GetPosition().z_ + 1.0f));
+			newNode->GetComponent<RigidBody>()->ApplyImpulse(singlePlayerObject->GetWorldDirection() * 500.0f);
+			singlePlayerMissileTimer = 1;
+		}
+	}
 }
 
 // Process the collisions for the missiles // SERVER FUNCTION
 void Main::ProcessCollisions(Connection* connection)
 {
-	Node* playerNode = serverObjects[connection];
-	for (unsigned j = 0; j < missileVector.size(); j++)
+	if (isServer)
 	{
-		Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
-		PhysicsRaycastResult result;
-		std::vector<Ray> rays;
-		std::vector<PhysicsRaycastResult> results;
-		results.push_back(result);
-		scene_->GetComponent<PhysicsWorld>()->SphereCast(results.back(), cameraRay, 2, 3, 4);
-		if (results.back().body_)
+		Node* playerNode = serverObjects[connection];
+		for (unsigned j = 0; j < missileVector.size(); j++)
 		{
-			Node* boid = results.back().body_->GetNode();
-			if (boid->GetName() == "Boid") // Update this for any future boids
+			Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
+			PhysicsRaycastResult result;
+			std::vector<Ray> rays;
+			std::vector<PhysicsRaycastResult> results;
+			results.push_back(result);
+			scene_->GetComponent<PhysicsWorld>()->SphereCast(results.back(), cameraRay, 2, 3, 4);
+			if (results.back().body_)
 			{
-				boid->SetEnabled(false);
-				missileVector[j]->SetPosition(Vector3(-1000.0f, -1000.0f, -1000.0f));
-				missileVector[j]->SetEnabled(false);
-
-				if (missileVector[j]->GetVar("ID") == playerNode)
+				Node* boid = results.back().body_->GetNode();
+				if (boid->GetName() == "Boid") // Update this for any future boids
 				{
-					VariantMap remoteEventData;
-					Variant score = playerNode->GetVar("Score");
-					int currentScore = score.GetInt();
-					currentScore += 10;
-					playerNode->SetVar("Score", currentScore);
-					currentScore = 0;
-					remoteEventData[CLIENT_SCORE] = playerNode->GetVar("Score");
-					connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
+					boid->SetEnabled(false);
+					missileVector[j]->SetPosition(Vector3(-1000.0f, -1000.0f, -1000.0f));
+					missileVector[j]->SetEnabled(false);
+
+					if (missileVector[j]->GetVar("ID") == playerNode)
+					{
+						VariantMap remoteEventData;
+						Variant score = playerNode->GetVar("Score");
+						int currentScore = score.GetInt();
+						currentScore += 10;
+						playerNode->SetVar("Score", currentScore);
+						currentScore = 0;
+						remoteEventData[CLIENT_SCORE] = playerNode->GetVar("Score");
+						connection->SendRemoteEvent(E_SCOREUPDATE, true, remoteEventData);
+					}
+					results.clear();
 				}
-				results.clear();
+			}
+		}
+	}
+
+	if (isSinglePlayer)
+	{
+		for (unsigned j = 0; j < missileVector.size(); j++)
+		{
+			Ray cameraRay(missileVector[j]->GetPosition(), missileVector[j]->GetWorldDirection() * Vector3::FORWARD * 100.0f);
+			PhysicsRaycastResult result;
+			std::vector<Ray> rays;
+			std::vector<PhysicsRaycastResult> results;
+			results.push_back(result);
+			scene_->GetComponent<PhysicsWorld>()->SphereCast(results.back(), cameraRay, 2, 3, 4);
+			if (results.back().body_)
+			{
+				Node* boid = results.back().body_->GetNode();
+				if (boid->GetName() == "Boid") // Update this for any future boids
+				{
+					boid->SetEnabled(false);
+					missileVector[j]->SetPosition(Vector3(-1000.0f, -1000.0f, -1000.0f));
+					missileVector[j]->SetEnabled(false);
+					singlePlayerScore += 10;
+					results.clear();
+				}
 			}
 		}
 	}
@@ -897,6 +1038,16 @@ void Main::MoveCamera()
 		{
 			const float CAMERA_DISTANCE = 20.0f;
 			cameraNode_->SetPosition(playerNode->GetPosition() + cameraNode_->GetRotation() * Vector3::BACK * CAMERA_DISTANCE);
+		}
+	}
+
+	// If singlePlayer then set the camera to that.
+	if (isSinglePlayer)
+	{
+		if (singlePlayerObject)
+		{
+			const float CAMERA_DISTANCE = 20.0f;
+			cameraNode_->SetPosition(singlePlayerObject->GetPosition() + cameraNode_->GetRotation() * Vector3::BACK * CAMERA_DISTANCE);
 		}
 	}
 }

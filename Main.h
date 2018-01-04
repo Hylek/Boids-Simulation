@@ -69,6 +69,7 @@ private:
 	bool isServer = false;
 	bool hasGameStarted = false;
 	bool ignoreInputs = false;
+	bool isSinglePlayer = false;
 	BoidSet gOne;
 	BoidSet gTwo;
 	BoidSet gThree;
@@ -77,19 +78,31 @@ private:
 	std::vector<BoidSet> boidGroups;
 	Particles bubbles;
 	Particles tags;
+	Node* singlePlayerObject;
+	int singlePlayerScore;
+	int oldSinglePlayerScore = 0;
+	float singlePlayerTimer;
+	bool singlePlayerControls = false;
+	float singlePlayerMissileTimer = 0;
+	int spSwap = 0;
 
 	virtual void Start();
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 	void CreateInitialScene();
 	void CreateLocalScene();
+	void StartSinglePlayer(StringHash eventType, VariantMap& eventData);
 	void AddObjects();
 	void SubscribeToEvents();
+	SharedPtr<Text> CreateText();
+	SharedPtr<Text> singlePlayerScoreUI;
+	SharedPtr<Text> singlePlayerTimerUI;
 
 	// Menu code START
 	Button* connectButton;
 	Button* disconnectButton;
 	Button* quitButton;
+	Button* singlePlayerButton;
 	Button* startServerButton;
 	Button* clientStartGame;
 	LineEdit* serverAddressEdit;
