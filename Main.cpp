@@ -148,7 +148,7 @@ void Main::CreateInitialScene()
 	shipNode->SetRotation(Quaternion(30.0f, 0.0f, 0.0f));
 	StaticModel* shipModel = shipNode->CreateComponent<StaticModel>();
 	shipModel->SetModel(cache->GetResource<Model>("Models/Ship.mdl"));
-	//shipModel->SetMaterial(cache->GetResource<Material>("Materials/wood.xml"));
+	shipModel->SetMaterial(cache->GetResource<Material>("Materials/PirateShip.xml"));
 	shipModel->SetCastShadows(true);
 	RigidBody* shipRB = shipNode->CreateComponent<RigidBody>();
 	shipRB->SetCollisionLayer(2);
@@ -168,10 +168,10 @@ void Main::CreateInitialScene()
 	Node* terrainNode = scene_->CreateChild("Terrain", LOCAL);
 	terrainNode->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	Terrain* terrain = terrainNode->CreateComponent<Terrain>();
-	terrain->SetPatchSize(32);
+	terrain->SetPatchSize(64);
 	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f));
 	terrain->SetSmoothing(true);
-	terrain->SetHeightMap(cache->GetResource<Image>("Textures/heightmap2.png"));
+	terrain->SetHeightMap(cache->GetResource<Image>("Textures/heightmap4.png"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
 	terrain->SetOccluder(true);
 	RigidBody* body = terrainNode->CreateComponent<RigidBody>();
@@ -280,9 +280,9 @@ void Main::AddObjects()
 
 	// Create objects
 	gOne.Init(cache, scene_, Random(20.0f, 30.0f), Random(20.0f, 30.0f), Random(20.0f, 30.0f), Random(20.0f, 30.0f));
-	//gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f));
-	//gThree.Init(cache, scene_, Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f));
-	//gFour.Init(cache, scene_, Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f));
+	gTwo.Init(cache, scene_, Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f), Random(190.0f, 200.0f));
+	gThree.Init(cache, scene_, Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f), Random(-20.0f, -30.0f));
+	gFour.Init(cache, scene_, Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f), Random(80.0f, 90.0f));
 
 	missile.CreateMissile(cache, scene_);
 }
@@ -351,33 +351,13 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		ignoreInputs = true;
 	}
-	//if (hasGameStarted)
-	//{
-	//	if (missile.isActive)
-	//	{
-	//		missile.model->SetEnabled(true);
-	//		if (swap == 1)
-	//		{
-	//			missile.rb->SetPosition(cameraNode_->GetPosition());
-	//			missile.rb->SetLinearVelocity(cameraNode_->GetDirection().Normalized() * 20.0f);
-	//			swap = 0;
-	//		}
-	//		if (missile.missileTimer <= 0)
-	//		{
-	//			missile.isActive = false;
-	//			missile.model->SetEnabled(false);
-	//			missile.missileTimer = 10;
-	//			swap = 1;
-	//		}
-	//	}
-	//}
 
 	if (isServer)
 	{
 		gOne.Update(timeStep, &missile);
-		//gTwo.Update(timeStep, &missile);
-		//gThree.Update(timeStep, &missile);
-		//gFour.Update(timeStep, &missile);
+		gTwo.Update(timeStep, &missile);
+		gThree.Update(timeStep, &missile);
+		gFour.Update(timeStep, &missile);
 
 		if (gameTimer > 0 && clientCount >= 2)
 		{
@@ -470,42 +450,7 @@ void Main::CreateGameMenu()
 	window_->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
 	window_->SetAlignment(HA_CENTER, VA_CENTER);
 	window_->SetName("Window");
-	window_->SetStyleAuto();	//Font* font = cache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
-	//Button* button = window_->CreateChild<Button>();
-	//button->SetMinHeight(24);
-	//button->SetStyleAuto();
-	//Text* buttonText = button->CreateChild<Text>();
-	//buttonText->SetFont(font, 12);
-	//buttonText->SetAlignment(HA_CENTER, VA_CENTER);
-	//buttonText->SetText("BUTTON 1");
-	//window_->AddChild(button);
-	//LineEdit* lineEdit = window_->CreateChild<LineEdit>();
-	//lineEdit->SetMinHeight(24);
-	//lineEdit->SetAlignment(HA_CENTER, VA_CENTER);
-	//lineEdit->SetText("LINEEDIT");
-	//window_->AddChild(lineEdit);
-	//lineEdit->SetStyleAuto();
-
-	//InitMouseMode(MM_RELATIVE);
-	//ResourceCache* cache = GetSubsystem<ResourceCache>();
-	//UI* ui = GetSubsystem<UI>();
-	//UIElement* root = ui->GetRoot();
-	//XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
-	//root->SetDefaultStyle(style);
-
-	//SharedPtr<Cursor> cursor(new Cursor(context_));
-	//cursor->SetStyleAuto(style);
-	//ui->SetCursor(cursor);
-
-	//window = new Window(context_);
-	//root->AddChild(window);
-
-	//window->SetMinWidth(384);
-	//window->SetMinHeight(200);
-	//window->SetLayout(LM_VERTICAL, 6, IntRect(6, 6, 6, 6));
-	//window->SetAlignment(HA_CENTER, VA_CENTER);
-	//window->SetName("Window");
-	//window->SetStyleAuto();
+	window_->SetStyleAuto();
 
 	Font* font = cache->GetResource<Font>("Fonts/Roboto-Light.ttf");
 	connectButton = CreateButton(font, "Connect", 24, window_);
@@ -538,7 +483,8 @@ Button* Main::CreateButton(Font* font, const String & text, int pHeight, Urho3D:
 	buttonText->SetFont(font, 12);
 	buttonText->SetAlignment(HA_CENTER, VA_CENTER);
 	buttonText->SetText(text);
-	window_->AddChild(button);
+	window_->AddChild(button);
+
 	return button;
 }
 
@@ -549,7 +495,8 @@ LineEdit* Main::CreateLineEdit(const String & text, int pHeight, Urho3D::Window 
 	lineEdit->SetAlignment(HA_CENTER, VA_CENTER);
 	lineEdit->SetText(text);
 	window_->AddChild(lineEdit);
-	lineEdit->SetStyleAuto();	return lineEdit;
+	lineEdit->SetStyleAuto();
+	return lineEdit;
 }
 //
 // MENU CODE END
@@ -752,7 +699,7 @@ void Main::GameOver(StringHash eventType, VariantMap & eventData)
 	// Position the text relative to the screen center
 	text->SetHorizontalAlignment(HA_CENTER);
 	text->SetVerticalAlignment(VA_CENTER);
-	text->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
+	text->SetPosition(0, ui->GetRoot()->GetHeight());
 }
 
 // Create client controlled object on the server // SERVER FUNCTION
