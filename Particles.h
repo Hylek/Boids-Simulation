@@ -58,7 +58,7 @@ public:
 	~Particles();
 
 	void InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
-	void InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
+	void InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos);
 	void InitPlayerTag(ResourceCache* cache, Scene* scene, Node* playerObject, int clientCount);
 	void Update(float timeStep);
 	void UpdateSeaWeed(float timeStep);

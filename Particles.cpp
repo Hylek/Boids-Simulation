@@ -61,13 +61,10 @@ void Particles::InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphi
 
 		// Add to sprite node vector
 		bubbleNodes.Push(spriteNode);
-
-		// Set move speed
-		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(2.0f, 2.0f), 0.0f));
 	}
 }
 
-void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
+void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos)
 {
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/seaweed.png");
 
@@ -77,7 +74,7 @@ void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics
 	{
 		float scaleAmount = Random(0.2f);
 		SharedPtr<Node> spriteNode(scene->CreateChild("SeaWeed", LOCAL));
-		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(90.0f, -100.0f), zPos));
+		spriteNode->SetPosition(Vector3(Random(xPos, xPos + 1.0f), Random(90.0f, -100.0f), Random(-300.0f, 300.0f)));
 		spriteNode->SetRotation(Quaternion(0.0f, Random(0.0f, 360.0f), 0.0f));
 		spriteNode->SetScale(Vector3(scaleAmount, scaleAmount, scaleAmount));
 
@@ -87,8 +84,6 @@ void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics
 		staticSprite->SetSprite(sprite);
 
 		weedNodes.Push(spriteNode);
-
-		spriteNode->SetVar(VAR_MOVESPEED, Vector3(Random(-2.0f, 2.0f), Random(2.0f, 2.0f), 0.0f));
 	}
 }
 
@@ -99,13 +94,10 @@ void Particles::Update(float timeStep)
 		SharedPtr<Node> node = bubbleNodes[i];
 
 		Vector3 position = node->GetPosition();
-		Vector3 moveSpeed = node->GetVar(VAR_MOVESPEED).GetVector3();
-		Vector3 newPosition = position + moveSpeed * timeStep;
+		Vector3 newPosition = position + Vector3(Vector3::UP) * timeStep * 2;
 		if (newPosition.x_ < 0.0f || newPosition.x_ > 4.0f)
 		{
 			newPosition.x_ = position.x_;
-			moveSpeed.x_ = -moveSpeed.x_;
-			node->SetVar(VAR_MOVESPEED, moveSpeed);
 		}
 		if (newPosition.y_ > 90.0f)
 		{
@@ -121,9 +113,7 @@ void Particles::UpdateSeaWeed(float timeStep)
 	{
 		SharedPtr<Node> node = weedNodes[i];
 
-		Vector3 position = node->GetPosition();
-		Vector3 moveSpeed = node->GetVar(VAR_MOVESPEED).GetVector3();
-		Vector3 newPosition = position + moveSpeed * timeStep;
+		Vector3 newPosition = node->GetPosition() + Vector3::UP  * timeStep * 2;
 		if (newPosition.y_ > 90.0f)
 		{
 			newPosition.y_ = Random(-25.0f);

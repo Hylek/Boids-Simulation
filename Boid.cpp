@@ -3,15 +3,13 @@
 float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
 float Boid::Range_FAlign = 15.0f;
-float Boid::Range_FMissileRepel = 4.0f;
-float Boid::FRange = 50.0f;
+
 
 float Boid::FAttract_Vmax = 3.0f;
 
 float Boid::FAttract_Factor = 15.0f;
 float Boid::FRepel_Factor = 13.0f;
 float Boid::FAlign_Factor = 12.0f;
-float Boid::FMissileRepel_Factor = 25.0f;
 
 Boid::Boid()
 {
@@ -100,7 +98,7 @@ Vector3 Boid::Align(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 15)
+		if (neighbourCount < 10)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();
@@ -130,7 +128,7 @@ Vector3 Boid::Repel(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 10)
+		if (neighbourCount < 5)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();

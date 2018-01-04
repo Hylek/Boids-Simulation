@@ -13,7 +13,7 @@ static const StringHash E_GAMEOVER("GameOver");
 static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 static const StringHash E_PLAYERSREADY("PlayersAreReady");
 
-Main::Main(Context* context) : Sample(context)
+Main::Main(Context* context) : Sample(context), backgroundAudio(0)
 {
 
 }
@@ -21,6 +21,11 @@ Main::Main(Context* context) : Sample(context)
 Main::~Main()
 {
 
+}
+
+void Main::Setup()
+{
+	Sample::Setup();
 }
 
 void Main::Start()
@@ -69,10 +74,17 @@ void Main::SubscribeToEvents()
 
 void Main::CreateInitialScene()
 {
+	Audio* audio = GetSubsystem<Audio>();
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 	Graphics* graphics = GetSubsystem<Graphics>();
 
 	scene_ = new Scene(context_);
+	backgroundAudio = scene_->CreateComponent<SoundSource>();
+	backgroundAudio->SetSoundType(SOUND_MUSIC);
+	Sound* music = cache->GetResource<Sound>("Music/test.ogg");
+	music->SetLooped(true);
+	backgroundAudio->Play(music);
+
 	scene_->CreateComponent<Octree>(LOCAL);
 	scene_->CreateComponent<PhysicsWorld>(LOCAL);
 
@@ -182,7 +194,7 @@ void Main::CreateInitialScene()
 	for (int i = 0; i < 40; i++)
 	{
 		bubbles.InitBubbles(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
-		seaweed.InitWeeds(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
+		seaweed.InitWeeds(cache, scene_, graphics, Random(-300.0f, 300.0f));
 	}
 }
 
@@ -191,10 +203,10 @@ void Main::AddObjects()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	// Create objects
-	gOne.Init(cache, scene_, Random(20.0f, 25.0f), Random(20.0f, 25.0f), Random(20.0f, 25.0f), Random(20.0f, 25.0f));
-	gTwo.Init(cache, scene_, Random(190.0f, 195.0f), Random(190.0f, 195.0f), Random(190.0f, 195.0f), Random(190.0f, 195.0f));
-	gThree.Init(cache, scene_, Random(-20.0f, -25.0f), Random(-20.0f, -25.0f), Random(-20.0f, -25.0f), Random(-20.0f, -25.0f));
-	gFour.Init(cache, scene_, Random(80.0f, 85.0f), Random(80.0f, 85.0f), Random(80.0f, 85.0f), Random(80.0f, 85.0f));
+	gOne.Init(cache, scene_, 20.0f, 22.0f, 20.0f, 22.0f);
+	//gTwo.Init(cache, scene_, 190.0f, 192.0f, 190.0f, 192.0f);
+	//gThree.Init(cache, scene_, -20.0f, -22.0f, -20.0f, -22.0f);
+	//gFour.Init(cache, scene_, 80.0f, 82.0f, 80.0f, 82.0f);
 }
 
 void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
@@ -256,9 +268,9 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (isServer)
 	{
 		gOne.Update(timeStep);
-		gTwo.Update(timeStep);
-		gThree.Update(timeStep);
-		gFour.Update(timeStep);
+		//gTwo.Update(timeStep);
+		//gThree.Update(timeStep);
+		//gFour.Update(timeStep);
 
 		if (clientCount < 2 || clientsAreReady)
 		{
@@ -268,7 +280,6 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 		{
 			std::cout << "GAME OVER" << std::endl;
 			text->SetVisible(true);
-			// GAME OVER
 		}
 
 		Network* network = GetSubsystem<Network>();
@@ -280,7 +291,12 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 			if (!playerNode) continue; // If the current client doesn't have a player object, keeping looping!
 
-			tags.UpdateTags(playerNode);
+			//playerOneTag.UpdateTags(playerNode);
+
+			//if (clientCount >= 2)
+			//{
+			//	playerTwoTag.UpdateTags(playerNode);
+			//}
 
 			if (playerNode->GetVar("Timer").GetFloat() > 0)
 			{
@@ -730,9 +746,10 @@ void Main::GameOver(StringHash eventType, VariantMap & eventData)
 	UI* ui = GetSubsystem<UI>();
 
 	text->SetVisible(true);
-	// Construct new Text object, set string to display and font to use
-	text->SetText("THE GAME IS NOW OVER!");
-	text->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 15);
+	int swap = 0;
+	if (swap == 0) 	text->SetText("THE GAME IS NOW OVER!"); swap = 1;
+
+	text->SetFont(cache->GetResource<Font>("Fonts/Roboto-Light.ttf"), 30);
 
 	// Position the text relative to the screen center
 	text->SetHorizontalAlignment(HA_CENTER);
@@ -762,10 +779,14 @@ Node* Main::CreatePlayer()
 	}
 
 	playerNode->SetPosition(position);
-	if (isServer)
-	{
-		tags.InitPlayerTag(cache, scene_, playerNode, clientCount);
-	}
+	//if (isServer && clientCount == 1)
+	//{
+	//	playerOneTag.InitPlayerTag(cache, scene_, playerNode, clientCount);
+	//}
+	//if (isServer && clientCount == 2)
+	//{
+	//	playerTwoTag.InitPlayerTag(cache, scene_, playerNode, clientCount);
+	//}
 	playerNode->SetScale(0.5f);
 	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
 	StaticModel* model = playerNode->CreateComponent<StaticModel>();
@@ -792,13 +813,13 @@ Node* Main::CreateMissile()
 	ResourceCache* cache = GetSubsystem<ResourceCache>();
 
 	Node* node = scene_->CreateChild("Missile");
-	node->SetScale(Vector3(1.5f, 1.5f, 1.5f));
+	node->SetScale(Vector3::ONE);
 	RigidBody* rb = node->CreateComponent<RigidBody>();
 	StaticModel* model = node->CreateComponent<StaticModel>();
 	CollisionShape* collider = node->CreateComponent<CollisionShape>();
 
-	model->SetModel(cache->GetResource<Model>("Models/TeaPot.mdl"));
-	//model->SetMaterial(cache->GetResource<Material>("Materials/Missile.xml"));
+	model->SetModel(cache->GetResource<Model>("Models/torpedo.mdl"));
+	model->SetMaterial(cache->GetResource<Material>("Materials/torpedo.xml"));
 	collider->SetBox(Vector3::ONE);
 	rb->SetCollisionLayer(2);
 	rb->SetCollisionMask(4);
@@ -1025,6 +1046,7 @@ void Main::ProcessClientControls()
 		}
 		if (resetTimer <= 0)
 		{
+
 		}
 	}
 }

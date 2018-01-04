@@ -60,7 +60,7 @@ void Sample::Setup()
     engineParameters_["LogName"]     = GetSubsystem<FileSystem>()->GetAppPreferencesDir("urho3d", "logs") + GetTypeName() + ".log";
     engineParameters_["FullScreen"]  = false;
     engineParameters_["Headless"]    = false;
-    engineParameters_["Sound"]       = false;
+    engineParameters_["Sound"]       = true;
 
     // Construct a search path to find the resource prefix with two entries:
     // The first entry is an empty path which will be substituted with program/bin directory -- this entry is for binary when it is still in build tree

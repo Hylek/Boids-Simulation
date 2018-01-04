@@ -29,14 +29,22 @@
 #include <Urho3D/UI/LineEdit.h>
 #include <Urho3D/UI/Button.h>
 #include <Urho3D/UI/UIEvents.h>
+#include <Urho3D/UI/Slider.h>
 #include <Urho3D/UI/Window.h>
 #include <Urho3D/UI/CheckBox.h>
 #include <Urho3D/Network/Connection.h>
 #include <Urho3D/Network/Network.h>
 #include <Urho3D/Network/NetworkEvents.h>
+#include <Urho3D/IO/Log.h>
 #include <Urho3D/Urho2D/AnimatedSprite2D.h>
 #include <Urho3D/Urho2D/AnimationSet2D.h>
 #include <Urho3D/Urho2D/Sprite2D.h>
+#include <Urho3D/Audio/Audio.h>
+#include <Urho3D/Audio/AudioEvents.h>
+#include <Urho3D/Audio/Sound.h>
+#include <Urho3D/Audio/SoundSource.h>
+#include <Urho3D/Audio/BufferedSoundStream.h>
+
 #include <iostream>
 #include <vector>
 #include <string> 
@@ -52,6 +60,8 @@ namespace Urho3D
 	class Node;
 	class Scene;
 	class Window;
+	class Slider;
+	class Button;
 }
 
 class Main : public Sample
@@ -64,6 +74,7 @@ public:
 	SharedPtr<Window> window_;
 	bool isMenuVisible = false;
 private:
+	SoundSource* backgroundAudio;
 	unsigned short int swap = 1;
 	bool isServer = false;
 	bool isClient = false;
@@ -77,7 +88,10 @@ private:
 	std::vector<BoidSet> boidGroups;
 	Particles bubbles;
 	Particles seaweed;
-	Particles tags;
+	Particles playerOneTag;
+	Particles playerTwoTag;
+	Particles playerThreeTag;
+	Particles playerFourTag;
 	Node* singlePlayerObject;
 	int singlePlayerScore;
 	int oldSinglePlayerScore = 0;
@@ -87,6 +101,7 @@ private:
 	float singlePlayerMissileTimer = 0;
 	int spSwap = 0;
 
+	virtual void Setup();
 	virtual void Start();
 	void HandleUpdate(StringHash eventType, VariantMap& eventData);
 	void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
