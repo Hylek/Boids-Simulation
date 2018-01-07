@@ -4,11 +4,10 @@ float Boid::Range_FAttract = 30.0f;
 float Boid::Range_FRepel = 20.0f;
 float Boid::Range_FAlign = 15.0f;
 
-
 float Boid::FAttract_Vmax = 3.0f;
 
 float Boid::FAttract_Factor = 15.0f;
-float Boid::FRepel_Factor = 13.0f;
+float Boid::FRepel_Factor = 12.0f;
 float Boid::FAlign_Factor = 12.0f;
 
 Boid::Boid()
@@ -64,7 +63,7 @@ Vector3 Boid::Attract(Boid* boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 5)
+		if (neighbourCount < 10)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			Vector3 position = boid[i].rb->GetPosition();
@@ -128,7 +127,7 @@ Vector3 Boid::Repel(Boid * boid)
 	{
 		if (this == &boid[i]) continue;
 
-		if (neighbourCount < 5)
+		if (neighbourCount < 15)
 		{
 			Vector3 sep = rb->GetPosition() - boid[i].rb->GetPosition();
 			float distance = sep.Length();

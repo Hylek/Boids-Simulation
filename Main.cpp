@@ -8,7 +8,6 @@ static const StringHash MISSILE_ID("MISSILEIDENTITY");
 static const StringHash E_CLIENTISREADY("ClientReadyToStart");
 static const StringHash E_SCOREUPDATE("ScoreUpdate");
 static const StringHash CLIENT_SCORE("ClientScores");
-static const StringHash E_SPAWNPLAYER("SpawnPlayer");
 static const StringHash E_GAMEOVER("GameOver");
 static const StringHash E_WAITINGONPLAYERS("WaitingOnPlayers");
 static const StringHash E_PLAYERSREADY("PlayersAreReady");
@@ -25,6 +24,7 @@ Main::~Main()
 
 void Main::Setup()
 {
+	// Setup the engine parameters to enable audio.
 	Sample::Setup();
 }
 
@@ -176,7 +176,7 @@ void Main::CreateInitialScene()
 	terrain->SetPatchSize(64);
 	terrain->SetSpacing(Vector3(2.0f, 0.5f, 2.0f));
 	terrain->SetSmoothing(true);
-	terrain->SetHeightMap(cache->GetResource<Image>("Textures/heightmap4.png"));
+	terrain->SetHeightMap(cache->GetResource<Image>("Textures/myhmap.png"));
 	terrain->SetMaterial(cache->GetResource<Material>("Materials/Terrain.xml"));
 	terrain->SetOccluder(true);
 	RigidBody* body = terrainNode->CreateComponent<RigidBody>();
@@ -190,7 +190,7 @@ void Main::CreateInitialScene()
 	skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
 	skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
-	// Create bubble streams
+	// Create bubble streams and seaweeds
 	for (int i = 0; i < 40; i++)
 	{
 		bubbles.InitBubbles(cache, scene_, graphics, Random(-300.0f, 300.0f), Random(-300.0f, 300.0f));
@@ -205,7 +205,7 @@ void Main::AddObjects()
 	// Create objects
 	gOne.Init(cache, scene_, 20.0f, 22.0f, 20.0f, 22.0f);
 	//gTwo.Init(cache, scene_, 190.0f, 192.0f, 190.0f, 192.0f);
-	//gThree.Init(cache, scene_, -20.0f, -22.0f, -20.0f, -22.0f);
+	//gThree.Init(cache, scene_, -20.0f, -22.0f, -20.0f, -22.0f); COMMENT IN TO USE GROUPS
 	//gFour.Init(cache, scene_, 80.0f, 82.0f, 80.0f, 82.0f);
 }
 
@@ -256,6 +256,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	{
 		isMenuVisible = !isMenuVisible;
 	}
+	if (input->GetKeyDown(KEY_G))	GetSubsystem<Graphics>()->ToggleFullscreen();
 	if (!isMenuVisible)
 	{
 		ignoreInputs = false;
@@ -268,7 +269,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (isServer)
 	{
 		gOne.Update(timeStep);
-		//gTwo.Update(timeStep);
+		//gTwo.Update(timeStep);	COMMENT IN TO USE GROUPS
 		//gThree.Update(timeStep);
 		//gFour.Update(timeStep);
 
@@ -290,13 +291,6 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 			Node* playerNode = serverObjects[connection];
 
 			if (!playerNode) continue; // If the current client doesn't have a player object, keeping looping!
-
-			//playerOneTag.UpdateTags(playerNode);
-
-			//if (clientCount >= 2)
-			//{
-			//	playerTwoTag.UpdateTags(playerNode);
-			//}
 
 			if (playerNode->GetVar("Timer").GetFloat() > 0)
 			{
@@ -338,9 +332,9 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 	if (isSinglePlayer)
 	{
 		gOne.Update(timeStep);
-		gTwo.Update(timeStep);
-		gThree.Update(timeStep);
-		gFour.Update(timeStep);
+		//gTwo.Update(timeStep); COMMENT IN TO USE GROUPS
+		//gThree.Update(timeStep);
+		//gFour.Update(timeStep);
 
 		if (singlePlayerTimer > 0)
 		{
@@ -382,6 +376,7 @@ void Main::HandleUpdate(StringHash eventType, VariantMap& eventData)
 			if (input->GetMouseButtonDown(MOUSEB_LEFT))	ShootMissile(NULL, singlePlayerObject);
 			if (input->GetKeyDown(KEY_R))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 80.0f);
 			if (input->GetKeyDown(KEY_F))	singlePlayerObject->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 80.0f);
+			if (input->GetKeyDown(KEY_G))	GetSubsystem<Graphics>()->ToggleFullscreen();
 		}
 		ProcessCollisions(NULL);
 	}
@@ -651,7 +646,7 @@ void Main::ClientDisconnecting(StringHash eventType, VariantMap & eventData)
 	if (clientCount > 0)
 	{
 		Node* playerNode = serverObjects[connection];
-		playerNode->SetEnabled(false);
+		if (playerNode != NULL) playerNode->SetEnabled(false);
 		clientCount--;
 	}
 }
@@ -779,14 +774,7 @@ Node* Main::CreatePlayer()
 	}
 
 	playerNode->SetPosition(position);
-	//if (isServer && clientCount == 1)
-	//{
-	//	playerOneTag.InitPlayerTag(cache, scene_, playerNode, clientCount);
-	//}
-	//if (isServer && clientCount == 2)
-	//{
-	//	playerTwoTag.InitPlayerTag(cache, scene_, playerNode, clientCount);
-	//}
+
 	playerNode->SetScale(0.5f);
 	playerNode->SetRotation(Quaternion(0.0f, 0.0f, 270.0f));
 	StaticModel* model = playerNode->CreateComponent<StaticModel>();
@@ -917,7 +905,7 @@ void Main::ProcessCollisions(Connection* connection)
 			if (results.back().body_)
 			{
 				Node* boid = results.back().body_->GetNode();
-				if (boid->GetName() == "Boid") // Update this for any future boids
+				if (boid->GetName() == "Boid")
 				{
 					boid->SetEnabled(false);
 					missileVector[j]->SetPosition(Vector3(-1000.0f, -1000.0f, -1000.0f));
@@ -1030,6 +1018,7 @@ void Main::ProcessClientControls()
 			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, playerNode);
 			if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
 			if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
+			if (controls.buttons_ & 64)			  GetSubsystem<Graphics>()->ToggleFullscreen();
 		}
 
 		if (clientCount >= 2)
@@ -1043,10 +1032,6 @@ void Main::ProcessClientControls()
 		{
 			isGameOver = true;
 			network->BroadcastRemoteEvent(E_GAMEOVER, true, remoteEventData);
-		}
-		if (resetTimer <= 0)
-		{
-
 		}
 	}
 }
@@ -1064,7 +1049,7 @@ Controls Main::ClientToServerControls()
 	controls.Set(CTRL_FIRE, input->GetMouseButtonDown(MOUSEB_LEFT));
 	controls.Set(16, input->GetKeyDown(KEY_R));
 	controls.Set(32, input->GetKeyDown(KEY_F));
-
+	controls.Set(64, input->GetKeyDown(KEY_G));
 
 	controls.yaw_ = yaw_;
 	return controls;

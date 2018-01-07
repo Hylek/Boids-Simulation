@@ -88,10 +88,6 @@ private:
 	std::vector<BoidSet> boidGroups;
 	Particles bubbles;
 	Particles seaweed;
-	Particles playerOneTag;
-	Particles playerTwoTag;
-	Particles playerThreeTag;
-	Particles playerFourTag;
 	Node* singlePlayerObject;
 	int singlePlayerScore;
 	int oldSinglePlayerScore = 0;

@@ -41,8 +41,6 @@
 using namespace Urho3D;
 
 static const unsigned NUM_SPRITES = 50;
-static const StringHash VAR_MOVESPEED("MoveSpeed");
-static const StringHash VAR_ROTATESPEED("RotateSpeed");
 
 namespace Urho3D
 {
@@ -59,13 +57,10 @@ public:
 
 	void InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos);
 	void InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos);
-	void InitPlayerTag(ResourceCache* cache, Scene* scene, Node* playerObject, int clientCount);
 	void Update(float timeStep);
 	void UpdateSeaWeed(float timeStep);
-	void UpdateTags(Node* playerObject);
 
 private:
 	Vector<SharedPtr<Node>> bubbleNodes;
 	Vector<SharedPtr<Node>> weedNodes;
-	SharedPtr<Node> newTagNode;
 };

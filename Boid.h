@@ -40,7 +40,7 @@
 
 using namespace Urho3D;
 
-static const short int NUM_BOIDS = 1000;
+static const short int NUM_BOIDS = 100;
 
 namespace Urho3D
 {
@@ -54,13 +54,10 @@ class Boid
 	static float Range_FAttract;
 	static float Range_FRepel;
 	static float Range_FAlign;
-	static float Range_FMissileRepel;
 	static float FAttract_Factor;
 	static float FRepel_Factor;
-	static float FMissileRepel_Factor;
 	static float FAlign_Factor;
 	static float FAttract_Vmax;
-	static float FRange;
 
 public:
 	Boid();
@@ -77,6 +74,7 @@ public:
 	Node* node;
 	RigidBody* rb;
 	CollisionShape* collider;
+	int wat = 0;
 	StaticModel* model;
 };
 
