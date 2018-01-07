@@ -40,8 +40,6 @@
 
 using namespace Urho3D;
 
-static const unsigned NUM_SPRITES = 50;
-
 namespace Urho3D
 {
 	class Node;

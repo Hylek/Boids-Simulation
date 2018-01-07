@@ -69,7 +69,6 @@ void Main::SubscribeToEvents()
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_GAMEOVER);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_WAITINGONPLAYERS);
 	GetSubsystem<Network>()->RegisterRemoteEvent(E_PLAYERSREADY);
-
 }
 
 void Main::CreateInitialScene()
@@ -1011,13 +1010,13 @@ void Main::ProcessClientControls()
 
 		if (gameTimer > 0 && clientCount >= 2)
 		{
-			if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons FORWARD \n");
-			if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);   //Log::WriteRaw("Received from Client: Controls buttons BACK \n");
-			if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons LEFT \n");
-			if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 10.0f);			//Log::WriteRaw("Received from Client: Controls buttons RIGHT \n");
+			if (controls.buttons_ & CTRL_FORWARD) playerNode->GetComponent<RigidBody>()->ApplyForce(playerNode->GetWorldDirection() * 180.0f);   
+			if (controls.buttons_ & CTRL_BACK)    playerNode->GetComponent<RigidBody>()->ApplyForce(-playerNode->GetWorldDirection() * 180.0f);  
+			if (controls.buttons_ & CTRL_LEFT)	  playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::DOWN * 50.0f);			
+			if (controls.buttons_ & CTRL_RIGHT)   playerNode->GetComponent<RigidBody>()->ApplyTorque(rotation * Vector3::UP * 50.0f);	
 			if (controls.buttons_ & CTRL_FIRE)    ShootMissile(connection, playerNode);
-			if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 40.0f);
-			if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 40.0f);
+			if (controls.buttons_ & 16)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::UP * 80.0f);
+			if (controls.buttons_ & 32)			  playerNode->GetComponent<RigidBody>()->ApplyForce(Vector3::DOWN * 80.0f);
 			if (controls.buttons_ & 64)			  GetSubsystem<Graphics>()->ToggleFullscreen();
 		}
 

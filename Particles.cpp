@@ -14,7 +14,7 @@ void Particles::InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphi
 {
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/bubble.png");
 
-	for (unsigned i = 0; i < NUM_SPRITES; ++i)
+	for (unsigned i = 0; i < 50; i++)
 	{
 		float scaleAmount = Random(0.2f);
 		SharedPtr<Node> spriteNode(scene->CreateChild("Bubble", LOCAL));
@@ -35,7 +35,7 @@ void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics
 {
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/seaweed.png");
 
-	for (unsigned i = 0; i < NUM_SPRITES; ++i)
+	for (unsigned i = 0; i < 50; i++)
 	{
 		float scaleAmount = Random(0.2f);
 		SharedPtr<Node> spriteNode(scene->CreateChild("SeaWeed", LOCAL));
@@ -54,35 +54,37 @@ void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics
 
 void Particles::Update(float timeStep)
 {
-	for (unsigned i = 0; i < bubbleNodes.Size(); ++i)
+	// Loop through each bubblenode and make them float upwards reset their positons when the reach the surface
+	for (unsigned i = 0; i < bubbleNodes.Size(); i++)
 	{
 		SharedPtr<Node> node = bubbleNodes[i];
 
-		Vector3 newPosition = node->GetPosition() + Vector3::UP * timeStep * 2;
-		if (newPosition.x_ < 0.0f || newPosition.x_ > 4.0f)
+		Vector3 pos = node->GetPosition() + Vector3::UP * timeStep * 2;
+		if (pos.x_ <= 0.0f)
 		{
-			newPosition.x_ = node->GetPosition().x_;
+			pos.x_ = node->GetPosition().x_;
 		}
-		if (newPosition.y_ > 90.0f)
+		if (pos.y_ > 90.0f)
 		{
-			newPosition.y_ = Random(-25.0f);
+			pos.y_ = Random(-25.0f);
 		}
-		node->SetPosition(newPosition);
+		node->SetPosition(pos);
 	}
 }
 
 void Particles::UpdateSeaWeed(float timeStep)
 {
-	for (unsigned i = 0; i < weedNodes.Size(); ++i)
+	// Loop through each seaweednode and make them float upwards and reset their positons when the reach the surface
+	for (unsigned i = 0; i < weedNodes.Size(); i++)
 	{
 		SharedPtr<Node> node = weedNodes[i];
 
-		Vector3 newPosition = node->GetPosition() + Vector3::UP  * timeStep * 2;
-		if (newPosition.y_ > 90.0f)
+		Vector3 pos = node->GetPosition() + Vector3::UP  * timeStep * 2;
+		if (pos.y_ > 90.0f)
 		{
-			newPosition.y_ = Random(-25.0f);
+			pos.y_ = Random(-25.0f);
 		}
-		node->SetPosition(newPosition);
+		node->SetPosition(pos);
 	}
 }
 
