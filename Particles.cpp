@@ -12,6 +12,7 @@ Particles::~Particles()
 
 void Particles::InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos, float zPos)
 {
+	// Small sections from Sample 24 project 24_Urho2DSprites
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/bubble.png");
 
 	for (unsigned i = 0; i < 50; i++)
@@ -33,6 +34,7 @@ void Particles::InitBubbles(ResourceCache* cache, Scene* scene, Graphics* graphi
 
 void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics, float xPos)
 {
+	// Small sections from Sample 24 project 24_Urho2DSprites
 	Sprite2D* sprite = cache->GetResource<Sprite2D>("Urho2D/seaweed.png");
 
 	for (unsigned i = 0; i < 50; i++)
@@ -54,6 +56,7 @@ void Particles::InitWeeds(ResourceCache* cache, Scene* scene, Graphics* graphics
 
 void Particles::Update(float timeStep)
 {
+	// Small sections from Sample 24 project 24_Urho2DSprites
 	// Loop through each bubblenode and make them float upwards reset their positons when the reach the surface
 	for (unsigned i = 0; i < bubbleNodes.Size(); i++)
 	{
@@ -74,6 +77,7 @@ void Particles::Update(float timeStep)
 
 void Particles::UpdateSeaWeed(float timeStep)
 {
+	// Small sections from Sample 24 project 24_Urho2DSprites
 	// Loop through each seaweednode and make them float upwards and reset their positons when the reach the surface
 	for (unsigned i = 0; i < weedNodes.Size(); i++)
 	{
