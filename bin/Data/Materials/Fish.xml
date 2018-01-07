@@ -1,6 +1,0 @@
-<material>
-	<technique name="Techniques/Diff.xml"/>
-	<texture name="Textures/fish_texture.png" unit="diffuse"/>
-	<parameter name="MatDiffColor" value="0.8 0.8 0.8 1"/>
-	<parameter name="MatSpecColor" value="0.05 0.05 0.05 50"/>
-</material>
