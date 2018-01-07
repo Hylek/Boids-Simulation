@@ -81,7 +81,7 @@ void Main::CreateInitialScene()
 	scene_ = new Scene(context_);
 	backgroundAudio = scene_->CreateComponent<SoundSource>();
 	backgroundAudio->SetSoundType(SOUND_MUSIC);
-	Sound* music = cache->GetResource<Sound>("Music/test.ogg");
+	Sound* music = cache->GetResource<Sound>("Music/bensound-slowmotion.ogg");
 	music->SetLooped(true);
 	backgroundAudio->Play(music);
 
